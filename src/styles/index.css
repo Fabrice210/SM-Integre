@@ -1,0 +1,27 @@
+/* Ordre d'import = ordre de la feuille d'origine : la cascade en dépend. */
+@import '../assets/fonts/plus-jakarta-sans.css';
+@import './tokens.css';
+@import './base.css';
+@import './components/shell.css';
+@import './components/buttons.css';
+@import './components/page.css';
+@import './components/stat.css';
+@import './components/badges.css';
+@import './components/table.css';
+@import './components/progress.css';
+@import './components/tabs.css';
+@import './components/forms.css';
+@import './components/overlays.css';
+@import './components/workflow.css';
+@import './components/toast.css';
+@import './components/charts.css';
+@import './components/process-map.css';
+@import './components/analysis.css';
+@import './components/org-chart.css';
+@import './components/matrix.css';
+@import './components/calendar.css';
+@import './components/alerts.css';
+@import './components/ai.css';
+@import './components/auth-onboarding.css';
+@import './components/misc.css';
+@import './responsive.css';

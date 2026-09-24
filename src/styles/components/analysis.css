@@ -1,0 +1,13 @@
+/* swot */
+.swot{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.swq{border-radius:14px;padding:12px;border:1px solid var(--line);min-height:170px}
+.swq h5{margin:0 0 8px;font-size:13.5px;display:flex;justify-content:space-between;align-items:center}
+.swq.f{background:var(--green-tint)}.swq.w{background:#FCF4EA}.swq.o{background:#EEF3FA}.swq.t{background:#FBEFED}
+.swq ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.swq li{background:#fff;border-radius:9px;padding:7px 9px;font-size:12.5px;border:1px solid rgba(0,0,0,.05);cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+.pestel{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.pcol{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px;min-height:190px}
+.pcol h5{margin:0 0 8px;font-size:12.5px}
+.pcol .big{font-size:20px;font-weight:700;color:var(--green);display:block;line-height:1}
+.pf{background:#fff;border:1px solid var(--line);border-left:3px solid var(--green-3);border-radius:8px;padding:6px 8px;font-size:12px;margin-bottom:6px;cursor:pointer}
+.pf.neg{border-left-color:var(--red)}

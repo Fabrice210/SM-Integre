@@ -1,0 +1,5 @@
+/* matrix */
+.mx td,.mx th{text-align:center}
+.mx td:first-child,.mx th:first-child{text-align:left}
+.lvl{display:inline-grid;place-items:center;width:28px;height:26px;border-radius:7px;font-weight:700;font-size:12px;cursor:pointer;border:1px solid transparent}
+.l0{background:#F4E1DE;color:var(--red)}.l1{background:#FAEBD2;color:var(--amber)}.l2{background:#EEF1D8;color:#6C6A12}.l3{background:#DCEFE3;color:var(--green-2)}.l4{background:var(--green);color:#fff}

@@ -1,0 +1,7 @@
+/* tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
+.tabs button{border:0;background:transparent;padding:9px 12px;font-size:13.5px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--green);font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:20px;padding:2px}
+.seg button{border:0;background:transparent;border-radius:18px;padding:4px 12px;font-size:12.5px;cursor:pointer}
+.seg button.on{background:var(--green);color:#fff}

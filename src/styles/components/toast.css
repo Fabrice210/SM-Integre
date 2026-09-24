@@ -1,0 +1,5 @@
+/* toast */
+.toasts{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:90}
+.toast{background:var(--ink);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px;box-shadow:var(--shadow-pop);max-width:380px;animation:fade .2s}
+.toast.ok{background:var(--green-2)}
+.toast.warn{background:#7A4F10}

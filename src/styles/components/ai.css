@@ -1,0 +1,13 @@
+/* ai panel */
+.ai-fab{position:fixed;right:26px;bottom:24px;z-index:30;border-radius:30px;padding:10px 16px;box-shadow:var(--shadow-pop)}
+.ai-panel{position:fixed;right:24px;bottom:24px;width:400px;max-height:calc(100vh - 60px);background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-pop);z-index:45;display:flex;flex-direction:column}
+.ai-h{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.ai-b{padding:12px 16px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;min-height:220px}
+.msg{border-radius:12px;padding:9px 11px;font-size:13px;max-width:92%;white-space:pre-wrap}
+.msg.bot{background:var(--surface-2);border:1px solid var(--line)}
+.msg.me{background:var(--green);color:#fff;align-self:flex-end}
+.ai-sugg{display:flex;flex-direction:column;gap:6px}
+.ai-sugg button{text-align:left;border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 10px;font-size:12.5px;cursor:pointer}
+.ai-sugg button:hover{background:var(--green-tint)}
+.ai-f{display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--line)}
+.ai-note{font-size:11px;color:var(--muted);padding:0 16px 10px}

@@ -1,0 +1,12 @@
+/* org chart */
+.org{display:flex;flex-direction:column;align-items:center;gap:0;overflow-x:auto;padding:6px}
+.org-node{background:#fff;border:1px solid var(--line-2);border-radius:11px;padding:8px 12px;text-align:center;font-size:12px;min-width:150px}
+.org-node b{display:block;font-size:12.5px}
+.org-node.top{background:var(--green);color:#fff;border-color:var(--green)}
+.org-vline{width:1.5px;height:18px;background:var(--line-2)}
+.org-row{display:flex;gap:10px;position:relative;padding-top:18px}
+.org-row::before{content:"";position:absolute;top:0;left:75px;right:75px;border-top:1.5px solid var(--line-2)}
+.org-col{display:flex;flex-direction:column;align-items:center;position:relative}
+.org-col::before{content:"";position:absolute;top:-18px;height:18px;width:1.5px;background:var(--line-2)}
+.org-col .org-sub{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+.org-col .org-sub .org-node{min-width:140px;background:var(--surface-2)}

@@ -1,0 +1,17 @@
+/* tables */
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.search{display:flex;align-items:center;gap:7px;border:1px solid var(--line-2);border-radius:9px;padding:6px 10px;min-width:200px;background:#fff}
+.search input{border:0;outline:0;background:transparent;min-width:0;flex:1;font-size:13px}
+.sel{border:1px solid var(--line-2);border-radius:9px;padding:6px 10px;background:#fff;font-size:13px}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;background:var(--surface-2);padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl tbody tr.click{cursor:pointer}
+.tbl tbody tr.click:hover td{background:var(--green-tint)}
+.tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+.tbl .ttl{font-weight:600}
+.tbl .ref{color:var(--muted);font-size:12px}
+.empty{padding:26px;text-align:center;color:var(--muted)}
+.count-line{font-size:12px;color:var(--muted);margin-top:8px}
