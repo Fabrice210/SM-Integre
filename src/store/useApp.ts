@@ -37,6 +37,7 @@ const initialUi = (): UiState => ({
   aiMsgs: [],
   chart: 'mois',
   chartSel: 4,
+  calY: 2026,
   sidebar: false,
   dismissed: [],
   history: [],

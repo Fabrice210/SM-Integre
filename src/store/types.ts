@@ -39,6 +39,8 @@ export interface UiState {
   aiMsgs: AiMessage[]
   chart: string
   chartSel: number
+  /** Année affichée par les calendriers (S.calY, partagée entre les pages). */
+  calY: number
   sidebar: boolean
   dismissed: string[]
   history: string[]

@@ -25,3 +25,26 @@ export function competenceGaps(db: Seed) {
     return { comp: c, nb, couverts: zero, critique: zero < 2 }
   }) as { comp: string; nb: number; couverts: number; critique: boolean }[]
 }
+
+/** coverage(n) de l'original : couverture moyenne des exigences pour une norme (ou toutes). */
+export function coverage(db: Seed, activeNorms: readonly string[], n?: string): number {
+  const L = (db.mapping as Any[]).filter(
+    (m) => activeNorms.includes(m.norme) && (!n || n === 'all' || n === 'cross' || m.norme === n)
+  )
+  return L.length ? Math.round(L.reduce((a, m) => a + m.couverture, 0) / L.length) : 0
+}
+
+/** openActions() de l'original : actions non clôturées (objectifs + risques), filtrées par norme. */
+export function openActions(db: Seed, norm: string) {
+  const a: Any[] = []
+  ;(db.objectifs as Any[]).forEach((o) =>
+    o.actions.forEach((x: Any) => {
+      if (x.statut !== 'Clôturé') a.push({ ...x, src: o.code, normes: o.normes })
+    })
+  )
+  ;(db.risques as Any[]).forEach((r) => {
+    if (r.statutAction !== 'Clôturé')
+      a.push({ libelle: r.action, responsable: r.responsable, echeance: r.echeance, statut: r.statutAction, src: r.id, normes: r.normes })
+  })
+  return a.filter((r) => norm === 'all' || norm === 'cross' || !r.normes || r.normes.includes(norm))
+}
