@@ -10,7 +10,15 @@ const isFull = (f: FieldDef) =>
   Boolean(f.t === 'textarea' || f.full || f.t === 'multi' || f.t === 'norms' || f.t === 'file')
 
 /** formHTML(fields, rec) de l'original — champs non contrôlés, lus à l'enregistrement. */
-export function FormRenderer({ formId, fields, rec }: { formId: string; fields: FieldDef[]; rec: Rec }) {
+export function FormRenderer({
+  formId,
+  fields,
+  rec,
+}: {
+  formId: string
+  fields: FieldDef[]
+  rec: Rec
+}) {
   const root = useRef<HTMLDivElement>(null)
   const [errors, setErrors] = useState<Set<string>>(new Set())
 
@@ -92,7 +100,9 @@ function Input({ f, id, v }: { f: FieldDef; id: string; v: unknown }) {
     case 'multi':
     case 'norms': {
       const opts =
-        f.t === 'norms' ? activeNorms.map((n) => [n, NORMS[n].code] as [string, string]) : optList(f.o)
+        f.t === 'norms'
+          ? activeNorms.map((n) => [n, NORMS[n].code] as [string, string])
+          : optList(f.o)
       return <Chips name={f.k} opts={opts} initial={Array.isArray(v) ? v.map(String) : []} />
     }
 
@@ -164,7 +174,15 @@ function Input({ f, id, v }: { f: FieldDef; id: string; v: unknown }) {
 }
 
 /** Cases à cocher multiples (multi / norms) : la puce se colore quand elle est cochée. */
-function Chips({ name, opts, initial }: { name: string; opts: [string, string][]; initial: string[] }) {
+function Chips({
+  name,
+  opts,
+  initial,
+}: {
+  name: string
+  opts: [string, string][]
+  initial: string[]
+}) {
   const [on, setOn] = useState<Set<string>>(new Set(initial))
   return (
     <div className="chips" data-multi={name}>

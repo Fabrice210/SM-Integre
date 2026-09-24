@@ -21,7 +21,14 @@ function PlanTab() {
       cols={[
         { l: 'Version', r: (v) => <span className="ttl">{v.version}</span> },
         { l: 'Titre', k: 'titre' },
-        { l: 'Document', r: (v) => <><Icon name="doc" size={14} /> {v.fichier}</> },
+        {
+          l: 'Document',
+          r: (v) => (
+            <>
+              <Icon name="doc" size={14} /> {v.fichier}
+            </>
+          ),
+        },
         { l: 'Validé le', r: (v) => fd(v.dateValidation) },
         { l: 'Validé par', k: 'validePar' },
         { l: 'Statut', r: (v) => <StatusBadge value={v.statut} /> },
@@ -44,15 +51,28 @@ function EvalTab() {
       <div className="grid g2">
         {axes.map((a) => (
           <div className="card flat" key={a.id}>
-            <div className="btn-row" style={{ justifyContent: 'space-between' }}><span className="badge b-blue">{a.code}</span><button className="btn sm" onClick={() => openForm('axes', a.id)}><Icon name="edit" size={13} /> Évaluer</button></div>
+            <div className="btn-row" style={{ justifyContent: 'space-between' }}>
+              <span className="badge b-blue">{a.code}</span>
+              <button className="btn sm" onClick={() => openForm('axes', a.id)}>
+                <Icon name="edit" size={13} /> Évaluer
+              </button>
+            </div>
             <h3 style={{ fontSize: '14.5px', margin: '8px 0' }}>{a.libelle}</h3>
             <Progress value={a.avancement} />
-            <p className="small muted" style={{ margin: '8px 0 0' }}>{a.evaluation}</p>
-            <p className="small" style={{ margin: '6px 0 0' }}>{objectifs.filter((o) => o.axe === a.id).length} objectif(s) rattaché(s)</p>
+            <p className="small muted" style={{ margin: '8px 0 0' }}>
+              {a.evaluation}
+            </p>
+            <p className="small" style={{ margin: '6px 0 0' }}>
+              {objectifs.filter((o) => o.axe === a.id).length} objectif(s) rattaché(s)
+            </p>
           </div>
         ))}
       </div>
-      <div style={{ marginTop: 12 }}><button className="btn sm" onClick={() => openForm('axes')}><Icon name="plus" size={14} /> Ajouter un axe</button></div>
+      <div style={{ marginTop: 12 }}>
+        <button className="btn sm" onClick={() => openForm('axes')}>
+          <Icon name="plus" size={14} /> Ajouter un axe
+        </button>
+      </div>
     </>
   )
 }
@@ -79,12 +99,22 @@ function CpTab() {
 
 /** PAGES['m2-engagement'] */
 export function EngagementPage() {
-  const [t, tb] = useTabs('eng', [['plan', 'Plan stratégique'], ['eval', 'Évaluation de la mise en œuvre'], ['cp', 'Autres politiques (champs personnalisés)']])
+  const [t, tb] = useTabs('eng', [
+    ['plan', 'Plan stratégique'],
+    ['eval', 'Évaluation de la mise en œuvre'],
+    ['cp', 'Autres politiques (champs personnalisés)'],
+  ])
   return (
     <>
-      <PageHead kicker={MOD_FULL.m2} title="2.1 Engagement de la direction" desc="Plan stratégique historisé, évaluation de sa mise en œuvre et autres politiques de l'entreprise." />
+      <PageHead
+        kicker={MOD_FULL.m2}
+        title="2.1 Engagement de la direction"
+        desc="Plan stratégique historisé, évaluation de sa mise en œuvre et autres politiques de l'entreprise."
+      />
       {tb}
-      <div className="card">{t === 'plan' ? <PlanTab /> : t === 'eval' ? <EvalTab /> : t === 'cp' ? <CpTab /> : null}</div>
+      <div className="card">
+        {t === 'plan' ? <PlanTab /> : t === 'eval' ? <EvalTab /> : t === 'cp' ? <CpTab /> : null}
+      </div>
     </>
   )
 }

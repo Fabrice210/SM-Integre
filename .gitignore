@@ -7,3 +7,5 @@ dist/
 /baseline/react/
 /baseline/diff/
 /test-results/
+/baseline/texts-react.json
+/baseline/texts-diff.md

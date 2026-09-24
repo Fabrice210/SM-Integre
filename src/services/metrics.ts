@@ -1,4 +1,7 @@
+import type { NormId } from '../data/referentiels'
 import type { Seed } from '../data/seed'
+import { inNorm } from '../lib/norms'
+import type { NormFilter } from '../store/types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any
@@ -26,25 +29,43 @@ export function competenceGaps(db: Seed) {
   }) as { comp: string; nb: number; couverts: number; critique: boolean }[]
 }
 
-/** coverage(n) de l'original : couverture moyenne des exigences pour une norme (ou toutes). */
-export function coverage(db: Seed, activeNorms: readonly string[], n?: string): number {
-  const L = (db.mapping as Any[]).filter(
-    (m) => activeNorms.includes(m.norme) && (!n || n === 'all' || n === 'cross' || m.norme === n)
+/** coverage(n) de l'original : couverture moyenne des exigences des normes actives. */
+export function coverage(db: Seed, activeNorms: readonly NormId[], n?: string): number {
+  const L = db.mapping.filter(
+    (m) =>
+      activeNorms.includes(m.norme as NormId) &&
+      (!n || n === 'all' || n === 'cross' || m.norme === n)
   )
   return L.length ? Math.round(L.reduce((a, m) => a + m.couverture, 0) / L.length) : 0
 }
 
-/** openActions() de l'original : actions non clôturées (objectifs + risques), filtrées par norme. */
-export function openActions(db: Seed, norm: string) {
-  const a: Any[] = []
-  ;(db.objectifs as Any[]).forEach((o) =>
-    o.actions.forEach((x: Any) => {
+export interface OpenAction {
+  libelle: string
+  responsable: string
+  echeance: string
+  statut: string
+  src: string
+  normes: readonly string[]
+}
+
+/** openActions() de l'original : actions d'objectifs et traitements de risques non clôturés. */
+export function openActions(db: Seed, norm: NormFilter): OpenAction[] {
+  const a: OpenAction[] = []
+  db.objectifs.forEach((o) =>
+    o.actions.forEach((x) => {
       if (x.statut !== 'Clôturé') a.push({ ...x, src: o.code, normes: o.normes })
     })
   )
-  ;(db.risques as Any[]).forEach((r) => {
+  db.risques.forEach((r) => {
     if (r.statutAction !== 'Clôturé')
-      a.push({ libelle: r.action, responsable: r.responsable, echeance: r.echeance, statut: r.statutAction, src: r.id, normes: r.normes })
+      a.push({
+        libelle: r.action,
+        responsable: r.responsable,
+        echeance: r.echeance,
+        statut: r.statutAction,
+        src: r.id,
+        normes: r.normes,
+      })
   })
-  return a.filter((r) => norm === 'all' || norm === 'cross' || !r.normes || r.normes.includes(norm))
+  return a.filter((x) => inNorm(x, norm))
 }

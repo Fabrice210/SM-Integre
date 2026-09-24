@@ -23,7 +23,12 @@ function SitesTab() {
   return (
     <DataTable
       id="sites"
-      cols={[{ l: 'Site', r: (s) => <span className="ttl">{s.nom}</span> }, { l: 'Adresse', k: 'adresse' }, { l: 'Activité principale', k: 'activite' }, ...EXCL_COLS]}
+      cols={[
+        { l: 'Site', r: (s) => <span className="ttl">{s.nom}</span> },
+        { l: 'Adresse', k: 'adresse' },
+        { l: 'Activité principale', k: 'activite' },
+        ...EXCL_COLS,
+      ]}
       rows={sites}
       onRowClick={siteDetail}
       search={['nom', 'adresse']}
@@ -41,11 +46,19 @@ function ActTab() {
   return (
     <DataTable
       id="act"
-      cols={[{ l: 'Type', k: 'type' }, { l: 'Libellé', r: (s) => <span className="ttl">{s.libelle}</span> }, { l: 'Site', k: 'site' }, ...EXCL_COLS]}
+      cols={[
+        { l: 'Type', k: 'type' },
+        { l: 'Libellé', r: (s) => <span className="ttl">{s.libelle}</span> },
+        { l: 'Site', k: 'site' },
+        ...EXCL_COLS,
+      ]}
       rows={activites}
       onRowClick={(i) => openForm('activites', i)}
       search={['libelle']}
-      filters={[{ k: 'type', l: 'Type', o: ['Activité', 'Processus', 'Produit', 'Service'] }, { k: 'statut', l: 'Statut', o: ['Inclus', 'Exclu'] }]}
+      filters={[
+        { k: 'type', l: 'Type', o: ['Activité', 'Processus', 'Produit', 'Service'] },
+        { k: 'statut', l: 'Statut', o: ['Inclus', 'Exclu'] },
+      ]}
       onAdd={() => openForm('activites')}
       addLabel="Ajouter un élément"
       exportName="Activites_couvertes"
@@ -63,11 +76,48 @@ function DocTab() {
   return (
     <>
       <div className="card-h">
-        <div className={`note ${auditorAccess ? 'ok' : 'warn'}`}>{auditorAccess ? 'Document accessible en lecture aux auditeurs lors des revues.' : 'Accès auditeurs désactivé.'} <a href="#" onClick={(e) => { e.preventDefault(); update((s) => { s.auditorAccess = !s.auditorAccess }) }}>{auditorAccess ? 'Désactiver' : 'Activer'}</a></div>
-        <div className="btn-row"><button className="btn sm" onClick={() => saveVersion('domaineVersions', 'Domaine d\'application')}><Icon name="archive" size={14} /> Figer une version</button><button className="btn sm" onClick={() => printDoc('Domaine d\'application', domaineHTML())}><Icon name="doc" size={14} /> PDF</button><button className="btn sm" onClick={() => exportWord('Domaine d\'application', domaineHTML())}><Icon name="dl" size={14} /> Word</button></div>
+        <div className={`note ${auditorAccess ? 'ok' : 'warn'}`}>
+          {auditorAccess
+            ? 'Document accessible en lecture aux auditeurs lors des revues.'
+            : 'Accès auditeurs désactivé.'}{' '}
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault()
+              update((s) => {
+                s.auditorAccess = !s.auditorAccess
+              })
+            }}
+          >
+            {auditorAccess ? 'Désactiver' : 'Activer'}
+          </a>
+        </div>
+        <div className="btn-row">
+          <button
+            className="btn sm"
+            onClick={() => saveVersion('domaineVersions', "Domaine d'application")}
+          >
+            <Icon name="archive" size={14} /> Figer une version
+          </button>
+          <button
+            className="btn sm"
+            onClick={() => printDoc("Domaine d'application", domaineHTML())}
+          >
+            <Icon name="doc" size={14} /> PDF
+          </button>
+          <button
+            className="btn sm"
+            onClick={() => exportWord("Domaine d'application", domaineHTML())}
+          >
+            <Icon name="dl" size={14} /> Word
+          </button>
+        </div>
       </div>
       <div className="doc-preview" dangerouslySetInnerHTML={{ __html: html }} />
-      <p className="small muted">Document mis à jour automatiquement à chaque ajout, modification ou exclusion de site et d'activité.</p>
+      <p className="small muted">
+        Document mis à jour automatiquement à chaque ajout, modification ou exclusion de site et
+        d'activité.
+      </p>
     </>
   )
 }
@@ -83,7 +133,17 @@ function VerTab() {
         { l: 'Date', r: (v) => fd(v.date) },
         { l: 'Auteur', k: 'auteur' },
         { l: 'Commentaire', k: 'commentaire' },
-        { l: '', r: (v) => <button className="btn sm" onClick={() => printDoc(`Domaine d'application ${v.version}`, domaineHTML())}>Consulter</button> },
+        {
+          l: '',
+          r: (v) => (
+            <button
+              className="btn sm"
+              onClick={() => printDoc(`Domaine d'application ${v.version}`, domaineHTML())}
+            >
+              Consulter
+            </button>
+          ),
+        },
       ]}
       rows={rows as Any[]}
       norm={false}
@@ -93,12 +153,31 @@ function VerTab() {
 
 /** PAGES['m1-domaine'] */
 export function DomainePage() {
-  const [t, tb] = useTabs('dom', [['sites', 'Sites'], ['act', 'Activités, produits et services'], ['doc', 'Document consolidé'], ['ver', 'Versions']])
+  const [t, tb] = useTabs('dom', [
+    ['sites', 'Sites'],
+    ['act', 'Activités, produits et services'],
+    ['doc', 'Document consolidé'],
+    ['ver', 'Versions'],
+  ])
   return (
     <>
-      <PageHead kicker={MOD_FULL.m1} title="1.3 Domaine d'application" desc="Sites, activités, processus, produits et services couverts ; toute exclusion exige une justification." />
+      <PageHead
+        kicker={MOD_FULL.m1}
+        title="1.3 Domaine d'application"
+        desc="Sites, activités, processus, produits et services couverts ; toute exclusion exige une justification."
+      />
       {tb}
-      <div className="card">{t === 'sites' ? <SitesTab /> : t === 'act' ? <ActTab /> : t === 'doc' ? <DocTab /> : t === 'ver' ? <VerTab /> : null}</div>
+      <div className="card">
+        {t === 'sites' ? (
+          <SitesTab />
+        ) : t === 'act' ? (
+          <ActTab />
+        ) : t === 'doc' ? (
+          <DocTab />
+        ) : t === 'ver' ? (
+          <VerTab />
+        ) : null}
+      </div>
     </>
   )
 }
