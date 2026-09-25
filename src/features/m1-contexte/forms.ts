@@ -1,4 +1,5 @@
 import type { FormDef } from '../../forms/types'
+import { ALL_N, NORMS, type NormId } from '../../data/referentiels'
 import { iso, TODAY } from '../../lib/dates'
 import { siteOpts, userNames } from '../../lib/lookups'
 import { useApp } from '../../store/useApp'
@@ -123,6 +124,12 @@ export const M1_FORMS: Record<string, FormDef> = {
       { k: 'nom', l: 'Nom du site', req: 1 },
       { k: 'adresse', l: 'Adresse', req: 1 },
       { k: 'activite', l: 'Activité principale', req: 1 },
+      {
+        k: 'monnaie',
+        l: 'Monnaie',
+        t: 'select',
+        o: ['FCFA (XOF)', 'EUR', 'USD', 'NGN (Naira)', 'GHS (Cedi)'],
+      },
       { k: 'statut', l: 'Statut', t: 'select', o: ['Inclus', 'Exclu'] },
       {
         k: 'justification',
@@ -136,6 +143,7 @@ export const M1_FORMS: Record<string, FormDef> = {
       nom: 'Agence commerciale de Lomé',
       adresse: 'Boulevard du 13 Janvier, Lomé (Togo)',
       activite: 'Représentation commerciale',
+      monnaie: 'FCFA (XOF)',
       statut: 'Exclu',
       justification:
         "Bureau de représentation sans activité opérationnelle ; aucune exigence client ne s'y applique.",
@@ -177,26 +185,50 @@ export const M1_FORMS: Record<string, FormDef> = {
       { k: 'intitule', l: 'Intitulé', req: 1 },
       { k: 'categorie', l: 'Catégorie', t: 'select', o: ['Pilotage', 'Réalisation', 'Support'] },
       { k: 'proprietaire', l: 'Pilote (propriétaire)', t: 'select', o: userNames },
+      { k: 'copilote', l: 'Copilote(s)', t: 'multi', o: userNames },
       { k: 'finalite', l: 'Finalité', t: 'textarea', req: 1 },
       { k: 'entrees', l: 'Entrées', t: 'textarea', req: 1 },
       { k: 'sorties', l: 'Sorties', t: 'textarea', req: 1 },
-      { k: 'indicateurs', l: 'Indicateurs associés', req: 1, full: 1 },
-      { k: 'normes', l: 'Normes', t: 'norms', req: 1 },
     ],
     def: () => ({
       code: 'P13',
       intitule: 'Recherche de financements',
       categorie: 'Support',
       proprietaire: 'Carine AKPLOGAN',
+      copilote: ['Nadège ZINSOU'],
       finalite: 'Mobiliser les financements des investissements QSE',
       entrees: "Plans d'investissement",
       sorties: 'Conventions de financement',
-      indicateurs: 'Montant mobilisé / montant prévu',
       normes: ['9001'],
     }),
     save: (_s, r) => {
       r.id = r.code
     },
+  },
+  applicabilite: {
+    title: 'Exigence normative',
+    prefix: 'AP',
+    label: 'article',
+    mod: "Domaine d'application",
+    fields: [
+      {
+        k: 'norme',
+        l: 'Norme',
+        t: 'select',
+        o: () => ALL_N.map((n) => [n, NORMS[n as NormId].code] as [string, string]),
+      },
+      { k: 'article', l: 'Article / exigence', req: 1, full: 1 },
+      { k: 'exclu', l: 'Exclu', t: 'select', o: ['Oui', 'Non'] },
+      { k: 'justification', l: 'Justification', t: 'textarea', req: 1 },
+      { k: 'commentaire', l: 'Commentaire', t: 'textarea' },
+    ],
+    def: () => ({
+      norme: '9001',
+      article: '7.1.5 Ressources pour la surveillance et la mesure',
+      exclu: 'Non',
+      justification: 'Équipements de mesure étalonnés en interne',
+      commentaire: '',
+    }),
   },
 }
 

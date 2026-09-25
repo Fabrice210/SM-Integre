@@ -2,7 +2,7 @@
 import { registerDetails } from '../../app/detailRegistry'
 import { registerPages } from '../../app/pages'
 import { registerForms } from '../../forms/registry'
-import { enjDetail, piDetail, procDetail, siteDetail } from './details'
+import { enjDetail, piDetail, planEngagementAction, procDetail, siteDetail } from './details'
 import { DomainePage } from './DomainePage'
 import { EnjeuxPage } from './EnjeuxPage'
 import { M1_FORMS } from './forms'
@@ -16,4 +16,4 @@ registerPages({
   'm1-processus': ProcessusPage,
 })
 registerForms(M1_FORMS)
-registerDetails({ enjDetail, piDetail, procDetail, siteDetail })
+registerDetails({ enjDetail, piDetail, procDetail, siteDetail, planEngagementAction })

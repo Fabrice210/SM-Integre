@@ -1,6 +1,5 @@
-import { Fragment, useMemo } from 'react'
+import { useMemo } from 'react'
 import { DataTable } from '../../components/data/DataTable'
-import { NormBadges } from '../../components/ui/badges'
 import { Icon } from '../../components/ui/Icon'
 import { PageHead } from '../../components/ui/PageHead'
 import { useTabs } from '../../components/ui/Tabs'
@@ -21,20 +20,13 @@ function Band({ P, cat, cls }: { P: Any[]; cat: string; cls: string }) {
         Processus de {cat.toLowerCase()} ({L.length})
       </h5>
       <div className="pflow">
-        {L.map((p, i, a) => (
-          <Fragment key={p.id}>
-            <button className="pnode" onClick={() => procDetail(p.id)}>
-              <b>
-                {p.code} · {p.intitule}
-              </b>
-              <small>{p.proprietaire}</small>
-            </button>
-            {cat === 'Réalisation' && i < a.length - 1 ? (
-              <span className="parrow">
-                <Icon name="arrow" size={16} />
-              </span>
-            ) : null}
-          </Fragment>
+        {L.map((p) => (
+          <button key={p.id} className="pnode" onClick={() => procDetail(p.id)}>
+            <b>
+              {p.code} · {p.intitule}
+            </b>
+            <small>{p.proprietaire}</small>
+          </button>
         ))}
       </div>
     </div>
@@ -97,8 +89,7 @@ export function ProcessusPage() {
                 ),
               },
               { l: 'Pilote', k: 'proprietaire' },
-              { l: 'Indicateurs', k: 'indicateurs' },
-              { l: 'Normes', r: (p) => <NormBadges norms={p.normes} /> },
+              { l: 'Copilote(s)', r: (p) => (p.copilote || []).join(', ') || '—' },
             ]}
             rows={processus}
             onRowClick={procDetail}

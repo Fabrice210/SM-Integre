@@ -4,7 +4,7 @@ import { StatusBadge } from '../../components/ui/badges'
 import { Icon } from '../../components/ui/Icon'
 import { PageHead } from '../../components/ui/PageHead'
 import { useTabs } from '../../components/ui/Tabs'
-import { MOD_FULL } from '../../data/referentiels'
+import { ALL_N, MOD_FULL, NORMS, type NormId } from '../../data/referentiels'
 import { openForm } from '../../forms/crud'
 import { fd } from '../../lib/dates'
 import { exportWord, printDoc } from '../../services/exports'
@@ -27,6 +27,7 @@ function SitesTab() {
         { l: 'Site', r: (s) => <span className="ttl">{s.nom}</span> },
         { l: 'Adresse', k: 'adresse' },
         { l: 'Activité principale', k: 'activite' },
+        { l: 'Monnaie', r: (s) => s.monnaie || 'FCFA (XOF)' },
         ...EXCL_COLS,
       ]}
       rows={sites}
@@ -66,6 +67,43 @@ function ActTab() {
     />
   )
 }
+
+const NORM_OPTS = () => ALL_N.map((n) => [n, NORMS[n as NormId].code] as [string, string])
+
+function NormTab() {
+  const applicabilite = useApp((s) => (s.db as Any).applicabilite) as Any[] | undefined
+  return (
+    <DataTable
+      id="applic"
+      cols={[
+        { l: 'Norme', r: (x) => <span className={`norm n${x.norme}`}>{x.norme}</span> },
+        { l: 'Article / exigence', r: (x) => <span className="ttl">{x.article}</span> },
+        {
+          l: 'Applicabilité',
+          r: (x) =>
+            x.exclu === 'Oui' ? (
+              <span className="badge b-amber">Exclu</span>
+            ) : (
+              <span className="badge b-green">Applicable</span>
+            ),
+        },
+        { l: 'Justification', r: (x) => <span className="small">{x.justification}</span> },
+        { l: 'Commentaire', r: (x) => <span className="small muted">{x.commentaire || '—'}</span> },
+      ]}
+      rows={applicabilite ?? EMPTY}
+      onRowClick={(i) => openForm('applicabilite', i)}
+      filters={[
+        { k: 'norme', l: 'Norme', o: NORM_OPTS },
+        { k: 'exclu', l: 'Exclu', o: ['Oui', 'Non'] },
+      ]}
+      onAdd={() => openForm('applicabilite')}
+      addLabel="Ajouter une exigence"
+      exportName="Applicabilite_normative"
+      norm={false}
+    />
+  )
+}
+const EMPTY: Any[] = []
 
 function DocTab() {
   const db = useApp((s) => s.db)
@@ -156,6 +194,7 @@ export function DomainePage() {
   const [t, tb] = useTabs('dom', [
     ['sites', 'Sites'],
     ['act', 'Activités, produits et services'],
+    ['norm', 'Applicabilité normative'],
     ['doc', 'Document consolidé'],
     ['ver', 'Versions'],
   ])
@@ -176,6 +215,8 @@ export function DomainePage() {
           <DocTab />
         ) : t === 'ver' ? (
           <VerTab />
+        ) : t === 'norm' ? (
+          <NormTab />
         ) : null}
       </div>
     </>

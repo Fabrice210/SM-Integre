@@ -9,6 +9,7 @@ import { openForm } from '../../forms/crud'
 import { procOpts } from '../../lib/lookups'
 import { exportPage } from '../../services/exports'
 import { useApp } from '../../store/useApp'
+import { diffuserNoyau } from './diffusion'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any
@@ -23,9 +24,14 @@ function Organigramme() {
           <h3>Organigramme</h3>
           <div className="sub">Généré à partir des directions et des fiches de poste</div>
         </div>
-        <button className="btn sm" onClick={() => exportPage(pageTitle('m2-roles'))}>
-          <Icon name="doc" size={14} /> PDF
-        </button>
+        <div className="btn-row">
+          <button className="btn sm" onClick={() => diffuserNoyau('Organigramme')}>
+            <Icon name="send" size={14} /> Diffuser
+          </button>
+          <button className="btn sm" onClick={() => exportPage(pageTitle('m2-roles'))}>
+            <Icon name="doc" size={14} /> PDF
+          </button>
+        </div>
       </div>
       <div className="org">
         <div className="org-node top">

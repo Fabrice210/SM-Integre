@@ -8,6 +8,7 @@ import { MOD_FULL } from '../../data/referentiels'
 import { openForm } from '../../forms/crud'
 import { days, fd } from '../../lib/dates'
 import { useApp } from '../../store/useApp'
+import { planifierAnnee, repDetail, reuDetail } from './consultationActions'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any
@@ -66,11 +67,20 @@ export function ConsultationPage() {
             ),
           },
           { l: 'Fonction', k: 'fonction' },
-          { l: 'Début de mandat', r: (x) => fd(x.mandatDebut) },
+          {
+            l: 'Qualité du lien',
+            r: (x) => <span className="badge b-grey">{x.qualiteLien || '—'}</span>,
+          },
+          { l: 'Suppléant', r: (x) => x.suppleant || '—' },
+          { l: 'Début', r: (x) => fd(x.mandatDebut) },
           { l: 'Fin de mandat', r: (x) => <Mandat m={x} /> },
+          {
+            l: 'État',
+            r: (x) => <StatusBadge value={x.statut === 'Révoqué' ? 'Révoqué' : 'Actif'} />,
+          },
         ]}
         rows={representants}
-        onRowClick={(i) => openForm('representants', i)}
+        onRowClick={repDetail}
         norm={false}
         onAdd={() => openForm('representants')}
         addLabel="Ajouter un représentant"
@@ -107,27 +117,23 @@ export function ConsultationPage() {
       <DataTable
         id="reu"
         cols={[
-          { l: 'Date', r: (x) => fd(x.date) },
-          {
-            l: 'Objet',
-            r: (x) => (
-              <>
-                <span className="ttl">{x.objet}</span>
-                <br />
-                <span className="ref">{x.participants}</span>
-              </>
-            ),
-          },
-          { l: 'Compte rendu', r: (x) => <span className="small">{x.compteRendu}</span> },
-          { l: "Plan d'action de suivi", r: (x) => <span className="small">{x.planAction}</span> },
-          { l: 'Statut', r: (x) => <StatusBadge value={x.statutPlan} /> },
+          { l: 'Date', r: (x) => fd(x.datePrevue || x.date) },
+          { l: 'Objet', r: (x) => <span className="ttl">{x.objet}</span> },
+          { l: 'Participants', r: (x) => <span className="badge b-grey">{x.participants}</span> },
+          { l: 'Compte rendu', r: (x) => <span className="small">{x.compteRendu || '—'}</span> },
+          { l: 'Statut', r: (x) => <StatusBadge value={x.statut || 'Planifiée'} /> },
         ]}
         rows={reunions}
-        onRowClick={(i) => openForm('reunions', i)}
+        onRowClick={reuDetail}
         norm={false}
         onAdd={() => openForm('reunions')}
-        addLabel="Enregistrer une réunion"
+        addLabel="Planifier une réunion"
         exportName="Reunions_consultation"
+        extra={
+          <button className="btn sm" onClick={planifierAnnee}>
+            <Icon name="cal" size={14} /> Planification globale de l'année
+          </button>
+        }
       />
     )
   return (

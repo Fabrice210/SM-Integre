@@ -149,11 +149,11 @@ export function exportCarto() {
     ['Pilotage', 'Réalisation', 'Support']
       .map(
         (c) =>
-          `<h2>Processus de ${c.toLowerCase()}</h2><table><tr><th>Code</th><th>Processus</th><th>Pilote</th><th>Finalité</th><th>Entrées</th><th>Sorties</th><th>Indicateurs</th></tr>${DB.processus
+          `<h2>Processus de ${c.toLowerCase()}</h2><table><tr><th>Code</th><th>Processus</th><th>Pilote</th><th>Finalité</th><th>Entrées</th><th>Sorties</th><th>Copilote(s)</th></tr>${DB.processus
             .filter((p) => p.categorie === c)
             .map(
               (p) =>
-                `<tr><td>${p.code}</td><td>${esc(p.intitule)}</td><td>${esc(p.proprietaire)}</td><td>${esc(p.finalite)}</td><td>${esc(p.entrees)}</td><td>${esc(p.sorties)}</td><td>${esc(p.indicateurs)}</td></tr>`
+                `<tr><td>${p.code}</td><td>${esc(p.intitule)}</td><td>${esc(p.proprietaire)}</td><td>${esc(p.finalite)}</td><td>${esc(p.entrees)}</td><td>${esc(p.sorties)}</td><td>${esc(((p as Any).copilote || []).join(', ') || '—')}</td></tr>`
             )
             .join('')}</table>`
       )

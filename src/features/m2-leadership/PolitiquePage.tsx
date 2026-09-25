@@ -1,69 +1,19 @@
+import { useMemo } from 'react'
 import { DataTable } from '../../components/data/DataTable'
 import { NormBadges, Progress, StatusBadge } from '../../components/ui/badges'
 import { Icon } from '../../components/ui/Icon'
 import { PageHead } from '../../components/ui/PageHead'
 import { MOD_FULL } from '../../data/referentiels'
 import { openForm } from '../../forms/crud'
-import { FormRenderer } from '../../forms/FormRenderer'
-import { readForm } from '../../forms/formControllers'
-import type { FieldDef } from '../../forms/types'
-import { fd, iso, TODAY } from '../../lib/dates'
+import { fd } from '../../lib/dates'
 import { printDoc } from '../../services/exports'
 import { logAct, update, useApp } from '../../store/useApp'
-import { closeModal, openModal, toast } from '../../store/useOverlays'
+import { toast } from '../../store/useOverlays'
+import { diffuserNoyau } from './diffusion'
+import { editPolitique, regenPolResume } from './politiqueActions'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any
-
-const POL_F: FieldDef[] = [
-  { k: 'resume', l: 'Résumé de la politique', t: 'textarea', req: 1 },
-  { k: 'orientations', l: 'Orientations (une par ligne)', t: 'textarea', req: 1 },
-  { k: 'signataire', l: 'Signataire', req: 1 },
-  { k: 'date', l: 'Date de publication', t: 'date', req: 1 },
-]
-
-/** editPolitique() : nouvelle version de la politique, accusés réinitialisés. */
-function editPolitique() {
-  const p = useApp.getState().db.politique
-  const publish = () => {
-    const d = readForm('polf')
-    if (d) {
-      update((s) => {
-        Object.assign(s.db.politique, d, {
-          version: 'v' + (parseInt(s.db.politique.version.slice(1)) + 1),
-          statut: 'Publiée',
-        })
-        s.db.accuses.forEach((a) => {
-          a.statut = 'Non lu'
-          a.date = '—'
-        })
-        logAct(s, 'a publié la politique SM ' + s.db.politique.version, 'Politique SM')
-      })
-      closeModal()
-      toast('Politique publiée : accusés de lecture réinitialisés.')
-    }
-  }
-  openModal({
-    title: 'Rédiger la politique SM',
-    sub: 'Une nouvelle version sera créée ; la précédente reste consultable.',
-    wide: true,
-    body: (
-      <div id="polf">
-        <FormRenderer formId="polf" fields={POL_F} rec={{ ...p, date: iso(TODAY) }} />
-      </div>
-    ),
-    foot: (
-      <>
-        <button className="btn" onClick={() => closeModal()}>
-          Annuler
-        </button>
-        <button className="btn primary" onClick={publish}>
-          <Icon name="send" size={15} /> Publier
-        </button>
-      </>
-    ),
-  })
-}
 
 /** PAGES['m2-politique'] */
 export function PolitiquePage() {
@@ -71,6 +21,8 @@ export function PolitiquePage() {
   const accuses = useApp((s) => s.db.accuses)
   const preuvesCom = useApp((s) => s.db.preuvesCom) as Any[]
   const activeNorms = useApp((s) => s.activeNorms)
+  const diffusions = useApp((s) => (s.db as Any).diffusions) as Any[] | undefined
+  const diffs = useMemo(() => (diffusions || []).filter((x) => /Politique/.test(x.doc)), [diffusions])
   const lus = accuses.filter((a) => a.statut === 'Lu').length
   const genAccuse = () =>
     printDoc(
@@ -105,9 +57,14 @@ export function PolitiquePage() {
         title="2.2 Politique SM"
         desc="Politique du système de management, preuves de communication et accusé de diffusion."
         actions={
-          <button className="btn primary" onClick={editPolitique}>
-            <Icon name="edit" size={15} /> Rédiger une nouvelle version
-          </button>
+          <>
+            <button className="btn" onClick={() => diffuserNoyau(`Politique SM ${p.version}`)}>
+              <Icon name="send" size={15} /> Diffuser
+            </button>
+            <button className="btn primary" onClick={editPolitique}>
+              <Icon name="edit" size={15} /> Rédiger une nouvelle version
+            </button>
+          </>
         }
       />
       <div className="grid g-side mb">
@@ -120,6 +77,14 @@ export function PolitiquePage() {
               </div>
             </div>
             <StatusBadge value={p.statut} />
+          </div>
+          <div className="btn-row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
+            <span className="badge b-violet">
+              <Icon name="ai" size={12} /> Résumé généré par l'IA
+            </span>
+            <button className="btn sm ghost" onClick={regenPolResume}>
+              <Icon name="refresh" size={12} /> Régénérer
+            </button>
           </div>
           <p style={{ maxWidth: '75ch' }}>{p.resume}</p>
           <ol style={{ paddingLeft: 18, maxWidth: '75ch' }}>
@@ -170,6 +135,17 @@ export function PolitiquePage() {
               Relancer les non-lus
             </button>
           </div>
+          {diffs.length ? (
+            <div className="dsec" style={{ marginTop: 12 }}>
+              <h4 style={{ fontSize: 13 }}>Historique de diffusion</h4>
+              {diffs.slice(0, 4).map((x, i) => (
+                <div key={i} className="small" style={{ padding: '5px 0', borderTop: '1px solid var(--line)' }}>
+                  {x.d} — <b>{x.canal === 'interne' ? 'Interne — dépôt direct' : 'Externe — email'}</b> → {x.destinataires}
+                  {x.canal === 'externe' ? ' · ' + x.piece : ''}
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
       <div className="card">

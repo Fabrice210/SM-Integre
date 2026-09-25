@@ -2,10 +2,13 @@ import { go } from '../../app/navigation'
 import { openDetail } from '../../components/data/Detail'
 import { NormBadges, StatusBadge } from '../../components/ui/badges'
 import { Block, LinkItem } from '../../components/ui/links'
-import { fd } from '../../lib/dates'
+import { Icon } from '../../components/ui/Icon'
+import { ALL_N } from '../../data/referentiels'
+import { addDays, fd } from '../../lib/dates'
 import { axeName } from '../../lib/lookups'
 import { taux } from '../../services/metrics'
-import { hist, logAct, update, useApp } from '../../store/useApp'
+import { currentUser, hist, logAct, update, useApp } from '../../store/useApp'
+import { closeModal, toast } from '../../store/useOverlays'
 import { joinNodes, type Any } from './util'
 
 /** crit(p) et critLbl(p) : criticité d'une partie intéressée. */
@@ -92,11 +95,74 @@ export function piDetail(id: string) {
     ],
     del: true,
     acts: (
-      <button className="btn" onClick={toggle}>
-        {p.planMisEnOeuvre ? 'Repasser à traiter' : 'Déclarer le plan mis en œuvre'}
-      </button>
+      <>
+        <button className="btn" onClick={() => planEngagementAction(id)}>
+          <Icon name="plus" size={15} /> Suivre le plan comme action
+        </button>
+        <button className="btn" onClick={toggle}>
+          {p.planMisEnOeuvre ? 'Repasser à traiter' : 'Déclarer le plan mis en œuvre'}
+        </button>
+      </>
     ),
   })
+}
+
+/** planEngagementAction(id) : rattache le plan d'engagement aux actions de l'objectif OB-PI. */
+export function planEngagementAction(id: string) {
+  const cur: Any = useApp.getState().db.parties.find((x) => x.id === id)
+  if (!cur) return
+  let deja = false
+  update((s) => {
+    const p: Any = s.db.parties.find((x) => x.id === id)
+    const DB = s.db as Any
+    let ob = DB.objectifs.find((o: Any) => o.code === 'OB-PI')
+    if (!ob) {
+      ob = {
+        id: 'OB-PI',
+        code: 'OB-PI',
+        axe: (DB.axes[0] || {}).id || 'AX1',
+        libelle: 'Engagement des parties intéressées',
+        kpi: "Plans d'engagement suivis",
+        cible: '100 % des parties critiques',
+        delai: addDays(90),
+        efficacite: 'Non évaluée',
+        processus: [(DB.processus[0] || {}).id || 'P01'],
+        normes: [...ALL_N],
+        actions: [],
+      }
+      DB.objectifs.push(ob)
+      logAct(s, "a créé l'objectif de suivi des plans d'engagement", 'Objectifs')
+    }
+    ob.actions = ob.actions || []
+    if (ob.actions.some((a: Any) => a.pi === id)) {
+      deja = true
+      return
+    }
+    ob.actions.push({
+      libelle: "Plan d'engagement — " + p.nom,
+      responsable: currentUser(s).nom,
+      echeance: addDays(90),
+      statut: 'En cours',
+      observation: p.plan + ' (remis trimestriellement)',
+      pi: id,
+    })
+    hist(s, p, "Plan d'engagement rattaché au module Objectifs / Actions")
+    logAct(
+      s,
+      "a rattaché le plan d'engagement de " + p.nom + ' aux actions (module Objectifs)',
+      'Parties intéressées'
+    )
+    s.ui.tabs.obj = 'act'
+  })
+  if (deja) {
+    toast("Le plan d'engagement de " + cur.nom + ' est déjà suivi comme action.')
+    return
+  }
+  closeModal('drawer')
+  toast(
+    "Plan d'engagement ajouté comme action trimestrielle — suivi dans le module Objectifs / Actions."
+  )
+  go('m3-objectifs')
 }
 
 /** Fiche d'un site (clic sur une ligne de l'onglet Sites). */
@@ -163,14 +229,14 @@ export function procDetail(id: string) {
           .map((d: Any) => li(d.id, d.ref + ' · ' + d.intitule, d.statut, 'm5-ged'))}
       />
       <Block
-        title="Plans opérationnels et fiches de maîtrise (Module 5)"
+        title="Plans opérationnels (Module 5) et fiches de maîtrise (Module 3)"
         items={[
           ...DB.plansOps
             .filter((x: Any) => x.processus === id)
             .map((x: Any) => li(x.id, x.plan, x.statut, 'm5-planif')),
           ...DB.fichesMaitrise
             .filter((x: Any) => x.processus === id)
-            .map((x: Any) => li(x.id, x.objet, 'Fiche de maîtrise', 'm5-fiches')),
+            .map((x: Any) => li(x.id, x.objet, 'Fiche de maîtrise', 'm3-fiches')),
         ]}
       />
       <Block
@@ -200,11 +266,10 @@ export function procDetail(id: string) {
     sub: 'Processus de ' + p.categorie.toLowerCase(),
     rows: [
       ['Pilote', p.proprietaire],
+      ['Copilote(s)', (p.copilote || []).join(', ') || '—'],
       ['Finalité', p.finalite],
       ['Entrées', p.entrees],
       ['Sorties', p.sorties],
-      ['Indicateurs', p.indicateurs],
-      ['Normes', <NormBadges norms={p.normes} />],
     ],
     extra: links,
     obs: true,

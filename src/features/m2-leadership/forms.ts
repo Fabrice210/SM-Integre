@@ -1,6 +1,6 @@
 import { DIRECTIONS } from '../../data/referentiels'
 import type { FormDef, Rec } from '../../forms/types'
-import { iso, TODAY } from '../../lib/dates'
+import { addDays, iso, TODAY } from '../../lib/dates'
 import { procOpts, userNames } from '../../lib/lookups'
 import { hist } from '../../store/useApp'
 
@@ -141,15 +141,21 @@ export const M2_FORMS: Record<string, FormDef> = {
       { k: 'nom', l: 'Nom', req: 1 },
       { k: 'prenom', l: 'Prénom', req: 1 },
       { k: 'fonction', l: 'Fonction', req: 1, full: 1 },
+      { k: 'qualiteLien', l: 'Qualité du lien', t: 'select', o: ['Titulaire', 'Suppléant', 'Représentant syndical', 'Invité permanent'] },
+      { k: 'suppleant', l: 'Délégué suppléant (le cas échéant)' },
       { k: 'mandatDebut', l: 'Début de mandat', t: 'date', req: 1 },
       { k: 'mandatFin', l: 'Fin de mandat', t: 'date', req: 1 },
+      { k: 'statut', l: 'État', t: 'select', o: ['Actif', 'Révoqué'] },
     ],
     def: () => ({
       nom: 'AGOSSA',
       prenom: 'Bénédicte',
       fonction: 'Opératrice pasteurisation — déléguée suppléante',
+      qualiteLien: 'Suppléant',
+      suppleant: '',
       mandatDebut: iso(TODAY),
       mandatFin: '2028-09-21',
+      statut: 'Actif',
     }),
   },
   comite: {
@@ -178,30 +184,23 @@ export const M2_FORMS: Record<string, FormDef> = {
     label: 'objet',
     mod: 'Consultation',
     fields: [
-      { k: 'date', l: 'Date', t: 'date', req: 1 },
-      { k: 'objet', l: 'Objet', req: 1 },
-      { k: 'participants', l: 'Participants', req: 1, full: 1 },
-      { k: 'compteRendu', l: 'Compte rendu', t: 'textarea', req: 1 },
-      {
-        k: 'planAction',
-        l: "Plan d'action de suivi (action, responsable, échéance)",
-        t: 'textarea',
-        req: 1,
-      },
-      {
-        k: 'statutPlan',
-        l: "Statut du plan d'action",
-        t: 'select',
-        o: ['À faire', 'En cours', 'Clôturé'],
-      },
+      { k: 'objet', l: 'Objet de la réunion', req: 1, full: 1 },
+      { k: 'datePrevue', l: 'Date prévue', t: 'date', req: 1 },
+      { k: 'participants', l: 'Participants', t: 'select', o: ['Comité HS (CHSS)', 'Délégués du personnel', 'Tout le personnel'] },
+      { k: 'ordreDuJour', l: 'Ordre du jour', t: 'textarea', req: 1 },
+      { k: 'statut', l: 'Statut', t: 'select', o: ['Planifiée', 'Réalisée'] },
     ],
     def: () => ({
-      date: iso(TODAY),
       objet: "Consultation sur l'aménagement de l'aire de stockage des coques",
-      participants: 'Comité HS, délégués, responsable maintenance',
-      compteRendu: 'Les travailleurs demandent un éclairage renforcé et une signalétique au sol',
-      planAction: 'Installer 6 projecteurs LED — Bertin SOSSA — 31/10/2026',
+      datePrevue: addDays(20),
+      participants: 'Comité HS (CHSS)',
+      ordreDuJour: "Éclairage renforcé de l'aire de stockage\nSignalétique au sol\nRotation des postes",
+      statut: 'Planifiée',
+      compteRendu: '',
+      planAction: '',
       statutPlan: 'À faire',
+      preuve1: '',
+      preuve2: '',
     }),
   },
 }
