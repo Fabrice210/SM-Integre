@@ -71,7 +71,7 @@ function ActTab() {
 const NORM_OPTS = () => ALL_N.map((n) => [n, NORMS[n as NormId].code] as [string, string])
 
 function NormTab() {
-  const applicabilite = useApp((s) => (s.db as Any).applicabilite) as Any[] | undefined
+  const applicabilite = useApp((s) => s.db.applicabilite) as Any[]
   return (
     <DataTable
       id="applic"
@@ -90,7 +90,7 @@ function NormTab() {
         { l: 'Justification', r: (x) => <span className="small">{x.justification}</span> },
         { l: 'Commentaire', r: (x) => <span className="small muted">{x.commentaire || '—'}</span> },
       ]}
-      rows={applicabilite ?? EMPTY}
+      rows={applicabilite}
       onRowClick={(i) => openForm('applicabilite', i)}
       filters={[
         { k: 'norme', l: 'Norme', o: NORM_OPTS },
@@ -103,7 +103,6 @@ function NormTab() {
     />
   )
 }
-const EMPTY: Any[] = []
 
 function DocTab() {
   const db = useApp((s) => s.db)
