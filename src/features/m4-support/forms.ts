@@ -1,7 +1,7 @@
 import { registerForms } from '../../forms/registry'
-import { addDays } from '../../lib/dates'
+import { addDays, iso, TODAY } from '../../lib/dates'
 import { procOpts, userNames } from '../../lib/lookups'
-import { currentUser } from '../../store/useApp'
+import { currentUser, useApp } from '../../store/useApp'
 
 /** FORMS.ressources, formations, savoirs, communications de l'original. */
 registerForms({
@@ -52,6 +52,7 @@ registerForms({
       { k: 'participants', l: 'Participants', req: 1, full: 1 },
       { k: 'statut', l: 'Statut', t: 'select', o: ['Planifiée', 'Réalisée', 'Reportée'] },
       { k: 'evaluationDate', l: 'Évaluation post-formation prévue le', t: 'date', req: 1 },
+      { k: 'evaluationResponsable', l: "Responsable de l'évaluation", t: 'select', o: userNames },
       { k: 'resultat', l: "Résultat de l'évaluation (Kirkpatrick 1 à 4)", t: 'textarea', req: 1 },
       { k: 'normes', l: 'Normes', t: 'norms', req: 1 },
     ],
@@ -62,6 +63,7 @@ registerForms({
       participants: 'Magasiniers de Porto-Novo et de Glo-Djigbé (8 pers.)',
       statut: 'Planifiée',
       evaluationDate: addDays(60),
+      evaluationResponsable: 'Nadège ZINSOU',
       resultat: 'À évaluer : test pratique et observation au poste',
       normes: ['45001'],
     }),
@@ -73,7 +75,12 @@ registerForms({
     label: 'savoir',
     mod: 'Compétences',
     fields: [
-      { k: 'savoir', l: 'Savoir critique', req: 1, full: 1 },
+      {
+        k: 'savoir',
+        l: 'Savoir critique (liste issue de la matrice de compétences)',
+        t: 'select',
+        o: () => useApp.getState().db.competences.liste,
+      },
       { k: 'detenteurs', l: 'Détenteurs actuels', req: 1 },
       { k: 'couverture', l: 'Couverture', req: 1 },
       { k: 'criticite', l: 'Situation', t: 'select', o: ['Critique', 'Couvert'] },
@@ -94,26 +101,43 @@ registerForms({
     label: 'objectif',
     mod: 'Communication',
     fields: [
+      { k: 'type', l: 'Type', t: 'select', o: ['Sensibilisation', 'Communication'] },
       { k: 'objectif', l: 'Objectif', req: 1, full: 1 },
       { k: 'quiFait', l: 'Qui fait', t: 'select', o: userNames },
-      { k: 'cible', l: 'Cible', req: 1 },
+      { k: 'portee', l: 'Portée', t: 'select', o: ['Interne', 'Externe'] },
+      {
+        k: 'cible',
+        l: 'Cible',
+        req: 1,
+        h: 'Interne ou externe — ex. fournisseurs, sous-traitants, riverains, clients (saisie libre possible)',
+      },
       { k: 'moyen', l: 'Moyen', req: 1 },
-      { k: 'date', l: 'Date prévue', t: 'date', req: 1 },
+      { k: 'date', l: 'Date prévue (délai)', t: 'date', req: 1 },
       { k: 'statut', l: 'Statut', t: 'select', o: ['Pas fait', 'Fait'] },
+      { k: 'dateRealisation', l: 'Date de réalisation effective', t: 'date' },
       { k: 'processus', l: 'Processus associé', t: 'select', o: procOpts },
       { k: 'preuve', l: 'Preuve (photo, feuille de présence, email)', t: 'file', req: 1 },
       { k: 'normes', l: 'Normes', t: 'norms', req: 1 },
     ],
     def: () => ({
+      type: 'Sensibilisation',
       objectif: "Présenter le plan d'urgence incendie",
       quiFait: 'Arnaud TCHIBOZO',
+      portee: 'Interne',
       cible: 'Nouveaux embauchés de la campagne 2026',
       moyen: "Session d'accueil sécurité",
       date: addDays(14),
       statut: 'Pas fait',
+      dateRealisation: '',
       processus: 'P11',
       preuve: 'Feuille_presence_accueil_securite.pdf',
       normes: ['45001', '14001'],
     }),
+    save: (_s, r) => {
+      if (r.statut === 'Fait' && !r.dateRealisation) {
+        r.dateRealisation = iso(TODAY)
+        return 'Action « Fait » — pensez à préciser la date de réalisation effective.'
+      }
+    },
   },
 })

@@ -11,7 +11,7 @@ import { fd } from '../../lib/dates'
 import { download } from '../../services/exports'
 import { competenceGaps } from '../../services/metrics'
 import { useApp } from '../../store/useApp'
-import { addCollab, importMatrix, lvlCycle, planFormation } from './competences'
+import { addCollab, exportMatrice, importMatrix, lvlCycle, planFormation } from './competences'
 
 type Row = { id: string } & Rec
 interface Collab {
@@ -73,6 +73,12 @@ function Matrice({ dir, setDir }: { dir: string; setDir: (d: string) => void }) 
         </label>
         <button className="btn sm" onClick={model}>
           <Icon name="dl" size={14} /> Modèle d'import
+        </button>
+        <button className="btn sm" onClick={() => exportMatrice('xls', dir)}>
+          <Icon name="dl" size={14} /> Exporter (Excel)
+        </button>
+        <button className="btn sm" onClick={() => exportMatrice('pdf', dir)}>
+          <Icon name="doc" size={14} /> Exporter (PDF)
         </button>
       </div>{' '}
       <div className="tbl-wrap">
@@ -223,7 +229,16 @@ export function CompetencesPage() {
             { l: 'Date', r: (x) => fd(x.date) },
             { l: 'Participants', k: 'participants' },
             { l: 'Statut', r: (x) => <StatusBadge value={x.statut} /> },
-            { l: 'Évaluation post-formation', r: (x) => fd(x.evaluationDate) },
+            {
+              l: 'Évaluation post-formation',
+              r: (x) => (
+                <>
+                  {fd(x.evaluationDate)}
+                  <br />
+                  <span className="ref">{x.evaluationResponsable || '—'}</span>
+                </>
+              ),
+            },
             { l: 'Résultat', r: (x) => <span className="small">{x.resultat}</span> },
             { l: 'Normes', r: (x) => <NormBadges norms={x.normes} /> },
           ]}

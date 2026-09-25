@@ -4,6 +4,7 @@ import { readForm } from '../../forms/formControllers'
 import { FormRenderer } from '../../forms/FormRenderer'
 import { FORMS } from '../../forms/registry'
 import type { FieldDef, Rec } from '../../forms/types'
+import { download, printDoc } from '../../services/exports'
 import { logAct, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
 
@@ -46,6 +47,49 @@ export function importMatrix(inp: HTMLInputElement) {
     toast(n + ' collaborateur(s) importé(s).')
   }
   rd.readAsText(f)
+}
+
+const esc = (v: unknown) =>
+  String(v ?? '').replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!
+  )
+
+/** exportMatrice(fmt) de l'original (v2) : matrice filtrée par direction (S.compDir). */
+export function exportMatrice(fmt: 'xls' | 'pdf', dir: string) {
+  const C = comp(useApp.getState())
+  const P = C.collaborateurs.filter((p: Rec) => !dir || p.direction === dir)
+  const head = [
+    'Collaborateur',
+    'Direction',
+    ...C.liste.map((l: string) => l + ' (req. ' + C.requis[l] + ')'),
+  ]
+  const rows: string[][] = P.map((p: Rec) => [
+    p.nom,
+    p.direction,
+    ...p.niveaux.map(
+      (v: number, k: number) => v + (v >= C.requis[C.liste[k]] ? ' (conforme)' : '')
+    ),
+  ])
+  if (fmt === 'xls') {
+    const csv =
+      '﻿' +
+      [
+        head.join(';'),
+        ...rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(';')),
+      ].join('\r\n')
+    download('Matrice_competences.csv', csv, 'text/csv;charset=utf-8')
+    update((s) => logAct(s, 'a exporté la matrice des compétences (Excel)', 'Compétences'))
+    toast('Matrice exportée — présentation simplifiée.')
+  } else {
+    const html =
+      '<table><thead><tr>' +
+      head.map((h: string) => `<th>${esc(h)}</th>`).join('') +
+      '</tr></thead><tbody>' +
+      rows.map((r) => '<tr>' + r.map((c) => `<td>${esc(c)}</td>`).join('') + '</tr>').join('') +
+      '</tbody></table>'
+    printDoc('Matrice des compétences' + (dir ? ' — ' + dir : ''), html)
+  }
 }
 
 const COLLAB_F: FieldDef[] = [

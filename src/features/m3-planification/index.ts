@@ -2,13 +2,15 @@
 import { registerDetails } from '../../app/detailRegistry'
 import { registerPages } from '../../app/pages'
 import { registerForms } from '../../forms/registry'
-import { FichesPage, fichesForms, fmDetail } from './FichesPage'
+import { fichesForms, fmDetail } from './fiches'
+import { FichesPage } from './FichesPage'
 import './forms'
 import { ObjectifsPage } from './ObjectifsPage'
 import { objDetail } from './objectifs'
 import { oppDetail, riskDetail } from './risques'
 import { RisquesPage } from './RisquesPage'
 import { declDetail, qualifUrgence, txDetail } from './veille'
+import { rapDetail } from './veilleRapports'
 import { VeillePage } from './VeillePage'
 
 registerPages({
@@ -19,4 +21,4 @@ registerPages({
 })
 
 registerForms(fichesForms)
-registerDetails({ objDetail, txDetail, declDetail, riskDetail, oppDetail, qualifUrgence, fmDetail })
+registerDetails({ objDetail, txDetail, declDetail, riskDetail, oppDetail, qualifUrgence, fmDetail, rapDetail })

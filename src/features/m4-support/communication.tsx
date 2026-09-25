@@ -1,3 +1,4 @@
+import { Icon } from '../../components/ui/Icon'
 import { readForm } from '../../forms/formControllers'
 import { FormRenderer } from '../../forms/FormRenderer'
 import type { FieldDef, Rec } from '../../forms/types'
@@ -14,7 +15,7 @@ const esc = (v: unknown) =>
 
 const PREUVE_F: FieldDef[] = [
   { k: 'preuve', l: 'Preuve de réalisation', t: 'file', req: 1 },
-  { k: 'date', l: 'Date de réalisation', t: 'date', req: 1 },
+  { k: 'dateRealisation', l: 'Date de réalisation effective', t: 'date', req: 1 },
 ]
 
 /** comDone(id) de l'original : joindre une preuve et passer l'action à « Fait ». */
@@ -27,24 +28,30 @@ export function comDone(id: string) {
       update((s) => {
         const c = s.db.communications.find((x) => x.id === id) as Rec
         Object.assign(c, d, { statut: 'Fait' })
-        hist(s, c, 'Réalisée — preuve jointe')
+        hist(s, c, 'Réalisée le ' + fd(d.dateRealisation) + ' — preuve jointe')
         logAct(s, "a joint la preuve de l'action « " + c.objectif + ' »', 'Communication')
       })
       closeModal()
-      toast('Action passée à « Fait ».')
+      toast('Action passée à « Fait » — date de réalisation enregistrée.')
     }
   }
   openModal({
     title: 'Joindre une preuve de réalisation',
     sub: c.objectif,
     body: (
-      <div id="cpf">
-        <FormRenderer
-          formId="cpf"
-          fields={PREUVE_F}
-          rec={{ preuve: 'Photo_' + c.id + '_realisation.jpg', date: iso(TODAY) }}
-        />
-      </div>
+      <>
+        <div className="note mb">
+          <Icon name="check" size={14} /> Renseignez la date de réalisation effective (distincte de la date de délai
+          prévue).
+        </div>
+        <div id="cpf">
+          <FormRenderer
+            formId="cpf"
+            fields={PREUVE_F}
+            rec={{ preuve: 'Photo_' + c.id + '_realisation.jpg', dateRealisation: iso(TODAY) }}
+          />
+        </div>
+      </>
     ),
     foot: (
       <>

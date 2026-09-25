@@ -11,7 +11,8 @@ import { axeName, procOpts } from '../../lib/lookups'
 import { inNorm } from '../../lib/norms'
 import { useApp } from '../../store/useApp'
 import { ACT_ST, objLate, objProg } from './helpers'
-import { editAction, objDetail } from './objectifs'
+import { editAction, importObjectifs, objDetail } from './objectifs'
+import { Icon } from '../../components/ui/Icon'
 
 function ObjCard({ o }: { o: Rec }) {
   return (
@@ -172,6 +173,17 @@ export function ObjectifsPage() {
               r: (a) => <DueDate date={a.echeance} done={a.statut === 'Clôturé'} />,
             },
             { l: 'Statut', r: (a) => <StatusBadge value={a.statut} /> },
+            {
+              l: 'Pièces',
+              r: (a) =>
+                a.pieces ? (
+                  <>
+                    <Icon name="doc" size={13} /> {a.pieces}
+                  </>
+                ) : (
+                  <span className="small muted">—</span>
+                ),
+            },
             { l: 'Observation', r: (a) => <span className="small">{a.observation}</span> },
           ]}
           rows={L as (Rec & { id: string })[]}
@@ -190,8 +202,13 @@ export function ObjectifsPage() {
     <>
       <PageHead
         kicker={MOD_FULL.m3}
-        title="3.1 Objectifs et plans d'action"
+        title="3.1 Objectifs et actions"
         desc="Objectifs liés aux orientations stratégiques, avec KPI, cible, délai, processus et plan d'action suivi jusqu'à l'évaluation de l'efficacité."
+        actions={
+          <button className="btn" onClick={importObjectifs}>
+            <Icon name="up" size={15} /> Importer un tableau de bord
+          </button>
+        }
       />
       {tb}
       {c}

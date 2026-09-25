@@ -53,7 +53,7 @@ export function RessourcesPage() {
                   <span className="ttl">{r.besoin}</span>
                   <br />
                   <span className="ref">
-                    {r.demandeur} — {procShort(r.processus)}
+                    {procShort(r.processus)}
                   </span>
                 </>
               ),

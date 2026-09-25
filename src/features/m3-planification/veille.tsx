@@ -11,6 +11,7 @@ import { addDays, fd, iso, TODAY } from '../../lib/dates'
 import { currentUser, hist, logAct, nextId, update, useApp } from '../../store/useApp'
 import { closeModal, openDrawer, toast } from '../../store/useOverlays'
 import { addRegistre } from '../../services/registre'
+import { diffuserTexte, rapDetail } from './veilleRapports'
 
 const db = () => useApp.getState().db
 
@@ -155,8 +156,9 @@ export function txDetail(id: string) {
     coll: 'textes',
     id,
     title: x.intitule,
-    sub: x.domaine,
+    sub: (x.categorie ? x.categorie + ' — ' : '') + x.domaine,
     rows: [
+      ['Catégorie', x.categorie || '—'],
       ['Publié le', fd(x.datePublication)],
       [
         'Source',
@@ -165,6 +167,17 @@ export function txDetail(id: string) {
         </a>,
       ],
       ['Statut', <StatusBadge value={x.statut} />],
+      [
+        'Diffusion',
+        x.diffuse ? (
+          <>
+            <span className="badge b-blue">Diffusé</span>{' '}
+            <span className="small muted">{x.destinataireDiff || ''}</span>
+          </>
+        ) : (
+          <span className="small muted">Non diffusé</span>
+        ),
+      ],
       ['Justificatif', x.justificatif],
       ['Pièces jointes', x.pieces],
       ['Prochaine évaluation', <DueDate date={x.echeance} done={x.statut === 'Fait'} />],
@@ -172,18 +185,37 @@ export function txDetail(id: string) {
       ['Normes', <NormBadges norms={x.normes} />],
     ],
     extra: (
-      <Block
-        title="Déclarations liées"
+      <>
+        <Block
+          title="Rapports de conformité liés"
+          items={(db().rapportsConf || [])
+            .filter((d) => d.texte === id)
+            .map((d) => (
+              <LinkItem key={d.id} title={d.ref + ' — ' + d.titre} sub={d.statut} onClick={() => rapDetail(d.id)} />
+            ))}
+        />
+        <Block
+        title="Déclarations d'écart liées"
         items={db()
           .declarations.filter((d) => d.texte === id)
           .map((d) => (
             <LinkItem key={d.id} title={d.objet} sub={d.statut} onClick={() => declDetail(d.id)} />
           ))}
       />
+      </>
     ),
     obs: true,
     acts: (
       <>
+        <button
+          className="btn"
+          onClick={() => {
+            closeModal('drawer')
+            diffuserTexte(id)
+          }}
+        >
+          <Icon name="send" size={15} /> Diffuser
+        </button>
         {x.statut === 'Pas fait' ? (
           <button
             className="btn"

@@ -213,8 +213,8 @@ export function RisquesPage() {
     <>
       <PageHead
         kicker={MOD_FULL.m3}
-        title="3.3 Gestion des changements — risques et opportunités"
-        desc="Registre unique typé par référentiel : évaluation, traitement, action générée au planning et suivi de l'efficacité."
+        title="3.4 Risques et opportunités"
+        desc="Registre unique typé par référentiel : évaluation, traitement, action générée au planning (action + responsable + délai) et suivi de l'efficacité."
       />
       {tb}
       {c}

@@ -3,11 +3,11 @@ import { DueDate, NormBadges, Progress, StatusBadge } from '../../components/ui/
 import { Icon } from '../../components/ui/Icon'
 import { readForm } from '../../forms/formControllers'
 import { FormRenderer } from '../../forms/FormRenderer'
-import type { Rec } from '../../forms/types'
+import type { FieldDef, Rec } from '../../forms/types'
 import { addDays, fd } from '../../lib/dates'
 import { axeName, procName } from '../../lib/lookups'
-import { hist, logAct, update, useApp } from '../../store/useApp'
-import { closeModal, openModal } from '../../store/useOverlays'
+import { hist, logAct, nextId, update, useApp } from '../../store/useApp'
+import { closeModal, openModal, toast } from '../../store/useOverlays'
 import { BrList } from './BrList'
 import { ACT_F, objProg } from './helpers'
 
@@ -120,5 +120,89 @@ export function editAction(oid: string, i: number) {
       ),
     },
     'modal2'
+  )
+}
+
+const IMP_F: FieldDef[] = [
+  { k: 'fichier', l: 'Fichier du tableau de bord (Excel, CSV)', t: 'file', req: 1 },
+  { k: 'remplace', l: "Mode d'import", t: 'toggle', lbl: 'Compléter la liste existante sans la supprimer' },
+]
+
+/** importObjectifs() de l'original (v2) : import d'un tableau de bord existant. */
+export function importObjectifs() {
+  openModal({
+    title: 'Importer un tableau de bord des objectifs',
+    sub: 'Rendez consultable dans la plateforme un tableau de bord des objectifs déjà existant.',
+    body: (
+      <>
+        <div className="note mb">
+          <Icon name="up" size={15} /> Les objectifs importés restent modifiables et sont rattachés aux processus et aux
+          normes.
+        </div>
+        <div id="impf">
+          <FormRenderer
+            formId="impf"
+            fields={IMP_F}
+            rec={{ fichier: 'Tableau_de_bord_objectifs_2026.xlsx', remplace: true }}
+          />
+        </div>
+      </>
+    ),
+    foot: (
+      <>
+        <button className="btn" onClick={() => closeModal()}>
+          Annuler
+        </button>
+        <button className="btn primary" onClick={doImportObjectifs}>
+          <Icon name="check" size={15} /> Importer
+        </button>
+      </>
+    ),
+  })
+}
+
+/** doImportObjectifs() de l'original. */
+function doImportObjectifs() {
+  const d = readForm('impf')
+  if (!d) return
+  let n = 0
+  update((s) => {
+    const ax = s.db.axes[0]?.id || 'AX1'
+    const imp = [
+      {
+        code: 'OB-06',
+        axe: ax,
+        libelle: "Atteindre 95 % de livraisons à l'heure",
+        kpi: "Taux de livraison à l'heure",
+        cible: '95 %',
+        delai: addDays(180),
+        efficacite: 'Non évaluée',
+        processus: ['P07'],
+        normes: ['9001'],
+      },
+      {
+        code: 'OB-07',
+        axe: ax,
+        libelle: 'Réduire le taux de rebut au conditionnement à 1 %',
+        kpi: 'Taux de rebut',
+        cible: '1 %',
+        delai: addDays(210),
+        efficacite: 'Non évaluée',
+        processus: ['P05'],
+        normes: ['9001'],
+      },
+    ]
+    const list = s.db.objectifs as unknown as Rec[]
+    imp.forEach((o) => {
+      if (list.some((x) => x.code === o.code)) return
+      list.push({ id: nextId(s, 'OB'), ...o, actions: [], importe: true })
+      n++
+    })
+    logAct(s, 'a importé un tableau de bord des objectifs (' + n + ' objectif(s))', 'Objectifs')
+    s.ui.tabs.obj = 'list'
+  })
+  closeModal()
+  toast(
+    n ? n + ' objectif(s) importé(s) et consultables dans la plateforme.' : 'Ces objectifs sont déjà présents dans la plateforme.'
   )
 }

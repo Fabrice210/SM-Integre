@@ -89,7 +89,7 @@ export function riskDetail(id: string) {
                 key={f.id}
                 title={f.objet}
                 sub="Fiche de maîtrise"
-                onClick={() => go('m5-fiches')}
+                onClick={() => go('m3-fiches')}
               />
             )),
         ]}

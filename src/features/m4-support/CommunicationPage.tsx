@@ -65,6 +65,12 @@ export function CommunicationPage() {
           id="com2"
           cols={[
             {
+              l: 'Type',
+              r: (x) => (
+                <span className={`badge ${x.type === 'Communication' ? 'b-blue' : 'b-violet'}`}>{x.type || '—'}</span>
+              ),
+            },
+            {
               l: 'Objectif',
               r: (x) => (
                 <>
@@ -75,9 +81,22 @@ export function CommunicationPage() {
               ),
             },
             { l: 'Qui fait', k: 'quiFait' },
-            { l: 'Cible', k: 'cible' },
+            {
+              l: 'Cible',
+              r: (x) => (
+                <>
+                  {x.cible}
+                  <br />
+                  <span className="ref">{x.portee || ''}</span>
+                </>
+              ),
+            },
             { l: 'Moyen', k: 'moyen' },
-            { l: 'Date', r: (x) => fd(x.date) },
+            { l: 'Date prévue', r: (x) => fd(x.date) },
+            {
+              l: 'Réalisée le',
+              r: (x) => (x.dateRealisation ? fd(x.dateRealisation) : <span className="small muted">—</span>),
+            },
             {
               l: 'Statut',
               r: (x) => (
@@ -112,16 +131,8 @@ export function CommunicationPage() {
           onRowClick={(i) => openForm('communications', i)}
           search={['objectif', 'cible']}
           filters={[
-            {
-              k: 'cible',
-              l: 'Cible',
-              o: () => [...new Set(communications.map((c) => c.cible as string))],
-            },
-            {
-              k: 'moyen',
-              l: 'Moyen',
-              o: () => [...new Set(communications.map((c) => c.moyen as string))],
-            },
+            { k: 'type', l: 'Type', o: ['Sensibilisation', 'Communication'] },
+            { k: 'portee', l: 'Portée', o: ['Interne', 'Externe'] },
             { k: 'statut', l: 'Statut', o: ['Fait', 'Pas fait'] },
           ]}
           onAdd={() => openForm('communications')}

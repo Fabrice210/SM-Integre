@@ -2,6 +2,7 @@ import { registerForms } from '../../forms/registry'
 import { addDays, fd, iso, TODAY } from '../../lib/dates'
 import { procOpts, userNames } from '../../lib/lookups'
 import { currentUser, logAct, useApp } from '../../store/useApp'
+import type { Rec } from '../../forms/types'
 import { ACT_ST, RTYPES } from './helpers'
 
 /** FORMS.objectifs, textes, declarations, risques, opportunites de l'original. */
@@ -67,6 +68,12 @@ registerForms({
     fields: [
       { k: 'intitule', l: 'Intitulé du texte', req: 1, full: 1 },
       {
+        k: 'categorie',
+        l: 'Catégorie',
+        t: 'select',
+        o: ['Loi', 'Décret', 'Arrêté', 'Ordonnance', 'Convention', 'Norme', 'Autre'],
+      },
+      {
         k: 'domaine',
         l: 'Domaine',
         t: 'select',
@@ -96,6 +103,7 @@ registerForms({
     ],
     def: () => ({
       intitule: 'Arrêté interministériel fixant les normes de rejet des eaux usées industrielles',
+      categorie: 'Arrêté',
       domaine: 'Environnement',
       datePublication: '2021-06-15',
       lien: 'https://sgg.gouv.bj',
@@ -249,6 +257,45 @@ registerForms({
     }),
     save: (s, r, n) => {
       if (n) r.id = 'O' + String(s.db.opportunites.length).padStart(2, '0')
+    },
+  },
+
+  rapportsConf: {
+    title: 'Rapport de conformité',
+    prefix: 'RC',
+    label: 'titre',
+    mod: 'Veille',
+    fields: [
+      {
+        k: 'texte',
+        l: 'Texte concerné',
+        t: 'select',
+        o: () => useApp.getState().db.textes.map((t) => [t.id, t.intitule.slice(0, 80)] as [string, string]),
+      },
+      { k: 'titre', l: 'Intitulé du rapport', req: 1, full: 1 },
+      { k: 'statut', l: 'Conclusion', t: 'select', o: ['Conforme', 'Non conforme', 'En cours'] },
+      { k: 'date', l: 'Date du rapport', t: 'date', req: 1 },
+      { k: 'auteur', l: 'Auteur', t: 'select', o: userNames },
+      { k: 'synthese', l: 'Synthèse', t: 'textarea', req: 1 },
+      { k: 'pieces', l: 'Pièces jointes', t: 'file', req: 1 },
+    ],
+    def: (s) => {
+      const nc = (s.db.textes.find((t) => t.statut !== 'Fait') || s.db.textes[0]) as Rec
+      return {
+        texte: nc.id,
+        titre: 'Rapport de conformité — ' + nc.intitule.slice(0, 50),
+        statut: nc.statut === 'Fait' ? 'Conforme' : 'Non conforme',
+        date: iso(TODAY),
+        auteur: currentUser(s).nom,
+        synthese: nc.justificatif,
+        pieces: nc.pieces || 'Rapport_conformite.pdf',
+      }
+    },
+    save: (s, r, n) => {
+      if (n) {
+        r.ref = 'RC-2026-' + String(s.db.rapportsConf.length).padStart(3, '0')
+        return r.ref + ' généré et lié au texte concerné.'
+      }
     },
   },
 })

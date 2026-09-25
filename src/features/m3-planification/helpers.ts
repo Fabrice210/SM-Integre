@@ -20,6 +20,7 @@ export const ACT_F: FieldDef[] = [
   { k: 'responsable', l: 'Responsable', t: 'select', o: userNames },
   { k: 'echeance', l: 'Échéance', t: 'date', req: 1 },
   { k: 'statut', l: 'Statut', t: 'select', o: ACT_ST },
+  { k: 'pieces', l: 'Pièces jointes', t: 'file' },
   { k: 'observation', l: 'Observation', t: 'textarea', req: 1 },
 ]
 
