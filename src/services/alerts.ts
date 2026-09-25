@@ -131,7 +131,7 @@ export function computeAlerts(db: Seed, dismissed: readonly string[]): Alert[] {
         d < 0 ? 'red' : 'amber',
         'Mise à jour de fiche de maîtrise',
         `${f.objet} — ${d < 0 ? 'échue depuis ' + -d + ' j' : 'J-' + d}`,
-        'm5-fiches',
+        'm3-fiches',
         f.responsable
       )
   })

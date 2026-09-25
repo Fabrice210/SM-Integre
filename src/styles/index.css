@@ -25,3 +25,6 @@
 @import './components/auth-onboarding.css';
 @import './components/misc.css';
 @import './responsive.css';
+@import './components/v2-additions.css';
+/* Écarts voulus par rapport à l'original */
+@import './fullscreen.css';

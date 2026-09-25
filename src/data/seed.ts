@@ -1,6 +1,7 @@
 // prettier-ignore
 /**
  * Données de démonstration, reprises à l'identique de l'original.
+ * Généré par scripts/extract-reference.mjs — ne pas modifier à la main.
  * Chargées au premier lancement, puis remplacées par l'état sauvegardé.
  */
 export const seed = {
@@ -315,22 +316,22 @@ mapping:[
  {id:'MP3',norme:'9001',version:'2015',article:'4.3',libelle:'Domaine d\'application',module:'1.3 Domaine d\'application',type:'Commune',preuve:'Document « Domaine d\'application »',couverture:100},
  {id:'MP4',norme:'9001',version:'2015',article:'4.4',libelle:'Système de management et processus',module:'1.4 Cartographie des processus',type:'Commune',preuve:'Cartographie et fiches processus',couverture:100},
  {id:'MP5',norme:'9001',version:'2015',article:'5.2',libelle:'Politique',module:'2.2 Politique SM',type:'Commune',preuve:'Politique signée et preuves de communication',couverture:100},
- {id:'MP6',norme:'9001',version:'2015',article:'6.1',libelle:'Actions face aux risques et opportunités',module:'3.3 Risques et opportunités',type:'Commune',preuve:'Registre des risques et opportunités',couverture:90},
+ {id:'MP6',norme:'9001',version:'2015',article:'6.1',libelle:'Actions face aux risques et opportunités',module:'3.4 Risques et opportunités',type:'Commune',preuve:'Registre des risques et opportunités',couverture:90},
  {id:'MP7',norme:'9001',version:'2015',article:'7.5',libelle:'Informations documentées',module:'5.1 GED',type:'Commune',preuve:'Procédure PR-QSE-01 et liste des documents',couverture:95},
  {id:'MP8',norme:'9001',version:'2015',article:'8.4',libelle:'Maîtrise des prestataires externes',module:'6.1 Surveillance et mesures',type:'Spécifique',preuve:'Évaluations des prestataires',couverture:80},
  {id:'MP9',norme:'9001',version:'2015',article:'9.2',libelle:'Audit interne',module:'6.2 Audits',type:'Commune',preuve:'Programme et rapports d\'audit',couverture:85},
  {id:'MP10',norme:'9001',version:'2015',article:'9.3',libelle:'Revue de direction',module:'6.3 Revues',type:'Commune',preuve:'PV de revue de direction',couverture:100},
- {id:'MP11',norme:'14001',version:'2026',article:'6.1.2',libelle:'Aspects environnementaux',module:'3.3 Risques et opportunités',type:'Spécifique',preuve:'Registre aspects-impacts (vue filtrée)',couverture:75},
- {id:'MP12',norme:'14001',version:'2026',article:'6.1.3',libelle:'Obligations de conformité',module:'3.2 Veille et mise en conformité',type:'Spécifique',preuve:'Registre réglementaire évalué',couverture:70},
- {id:'MP13',norme:'14001',version:'2026',article:'6.3',libelle:'Planification et gestion des changements',module:'3.3 Risques et opportunités',type:'Spécifique',preuve:'Fiche d\'analyse d\'impact du changement',couverture:40},
+ {id:'MP11',norme:'14001',version:'2026',article:'6.1.2',libelle:'Aspects environnementaux',module:'3.4 Risques et opportunités',type:'Spécifique',preuve:'Registre aspects-impacts (vue filtrée)',couverture:75},
+ {id:'MP12',norme:'14001',version:'2026',article:'6.1.3',libelle:'Obligations de conformité',module:'3.3 Veille réglementaire',type:'Spécifique',preuve:'Registre réglementaire évalué',couverture:70},
+ {id:'MP13',norme:'14001',version:'2026',article:'6.3',libelle:'Planification et gestion des changements',module:'3.4 Risques et opportunités',type:'Spécifique',preuve:'Fiche d\'analyse d\'impact du changement',couverture:40},
  {id:'MP14',norme:'14001',version:'2026',article:'8.2',libelle:'Préparation et réponse aux situations d\'urgence',module:'5.3 Situations d\'urgence',type:'Commune',preuve:'Fiches d\'urgence et comptes-rendus d\'exercice',couverture:70},
  {id:'MP15',norme:'45001',version:'2018',article:'5.4',libelle:'Consultation et participation des travailleurs',module:'2.4 Consultation et participation',type:'Spécifique',preuve:'PV des réunions du comité HS',couverture:90},
- {id:'MP16',norme:'45001',version:'2018',article:'6.1.2',libelle:'Identification des dangers et évaluation des risques',module:'3.3 Risques et opportunités',type:'Spécifique',preuve:'DUERP (vue SST du registre)',couverture:80},
- {id:'MP17',norme:'45001',version:'2018',article:'8.1',libelle:'Maîtrise opérationnelle',module:'5.4 Fiche de maîtrise opérationnelle',type:'Commune',preuve:'Fiches de maîtrise à jour',couverture:65},
+ {id:'MP16',norme:'45001',version:'2018',article:'6.1.2',libelle:'Identification des dangers et évaluation des risques',module:'3.4 Risques et opportunités',type:'Spécifique',preuve:'DUERP (vue SST du registre)',couverture:80},
+ {id:'MP17',norme:'45001',version:'2018',article:'8.1',libelle:'Maîtrise opérationnelle',module:'3.2 Fiche de maîtrise opérationnelle',type:'Commune',preuve:'Fiches de maîtrise à jour',couverture:65},
  {id:'MP18',norme:'45001',version:'2018',article:'10.2',libelle:'Événement indésirable, NC et action corrective',module:'6.4 Non-conformités',type:'Commune',preuve:'Registre des incidents et actions',couverture:85},
- {id:'MP19',norme:'27001',version:'2022',article:'6.1.3',libelle:'Traitement des risques de sécurité — déclaration d\'applicabilité',module:'3.3 Risques et opportunités',type:'Spécifique',preuve:'Déclaration d\'applicabilité (SoA)',couverture:45},
+ {id:'MP19',norme:'27001',version:'2022',article:'6.1.3',libelle:'Traitement des risques de sécurité — déclaration d\'applicabilité',module:'3.4 Risques et opportunités',type:'Spécifique',preuve:'Déclaration d\'applicabilité (SoA)',couverture:45},
  {id:'MP20',norme:'27001',version:'2022',article:'7.3',libelle:'Sensibilisation',module:'4.3 Communication',type:'Commune',preuve:'Campagnes de sensibilisation',couverture:90},
- {id:'MP21',norme:'27001',version:'2022',article:'A.8.13',libelle:'Sauvegarde des informations',module:'5.4 Fiche de maîtrise opérationnelle',type:'Spécifique',preuve:'Procédure PR-SI-03 et rapports de test',couverture:35},
+ {id:'MP21',norme:'27001',version:'2022',article:'A.8.13',libelle:'Sauvegarde des informations',module:'3.2 Fiche de maîtrise opérationnelle',type:'Spécifique',preuve:'Procédure PR-SI-03 et rapports de test',couverture:35},
  {id:'MP22',norme:'27001',version:'2022',article:'9.2',libelle:'Audit interne',module:'6.2 Audits',type:'Commune',preuve:'Rapport AUD-2026-03',couverture:80}
 ],
 journal:[

@@ -1,6 +1,8 @@
 // Inscription des pages, formulaires et fiches du module 3 — Planification.
 import { registerDetails } from '../../app/detailRegistry'
 import { registerPages } from '../../app/pages'
+import { registerForms } from '../../forms/registry'
+import { FichesPage, fichesForms, fmDetail } from './FichesPage'
 import './forms'
 import { ObjectifsPage } from './ObjectifsPage'
 import { objDetail } from './objectifs'
@@ -11,8 +13,10 @@ import { VeillePage } from './VeillePage'
 
 registerPages({
   'm3-objectifs': ObjectifsPage,
+  'm3-fiches': FichesPage,
   'm3-veille': VeillePage,
   'm3-risques': RisquesPage,
 })
 
-registerDetails({ objDetail, txDetail, declDetail, riskDetail, oppDetail, qualifUrgence })
+registerForms(fichesForms)
+registerDetails({ objDetail, txDetail, declDetail, riskDetail, oppDetail, qualifUrgence, fmDetail })

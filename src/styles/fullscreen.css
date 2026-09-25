@@ -1,0 +1,6 @@
+/* =========================================================
+   Plein écran (demande client, hors original) : l'application occupe
+   toute la fenêtre à toutes les largeurs. L'original n'enlevait la marge
+   et l'arrondi de la coque que sous 900 px (cf. responsive.css).
+   ========================================================= */
+.shell { margin: 0; height: 100vh; border-radius: 0; box-shadow: none; }

@@ -20,6 +20,8 @@ export interface Persisted {
   uidSeq: number
   /** L'organisme a terminé l'assistant d'onboarding (S.onboarded). */
   onboarded: boolean
+  /** Version des données de démo à l'origine de la sauvegarde (cf. DATA_VERSION). */
+  dataVersion: number
 }
 
 export interface AiMessage {

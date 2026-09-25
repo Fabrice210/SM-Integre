@@ -1,6 +1,7 @@
 // prettier-ignore
 /**
  * Référentiels repris à l'identique de l'original (reference/original.html).
+ * Généré par scripts/extract-reference.mjs — ne pas modifier à la main.
  * USERS et ORG servent de valeurs initiales : les versions modifiables vivent
  * dans l'état sauvegardé (store), car l'application permet de les éditer.
  */
@@ -45,12 +46,12 @@ export const ST_COL = {
 export const MODS = [
  {id:'m1',n:1,l:'Contexte de l\'organisme',ic:'org',subs:[['m1-enjeux','1.1 Enjeux'],['m1-parties','1.2 Parties intéressées'],['m1-domaine','1.3 Domaine d\'application'],['m1-processus','1.4 Cartographie des processus']]},
  {id:'m2',n:2,l:'Leadership',ic:'lead',subs:[['m2-engagement','2.1 Engagement de la direction'],['m2-politique','2.2 Politique SM'],['m2-roles','2.3 Rôles et responsabilités'],['m2-consultation','2.4 Consultation et participation']]},
- {id:'m3',n:3,l:'Planification',ic:'plan',subs:[['m3-objectifs','3.1 Objectifs et plans d\'action'],['m3-veille','3.2 Veille et mise en conformité'],['m3-risques','3.3 Risques et opportunités']]},
+ {id:'m3',n:3,l:'Objectifs, conformité et risques',ic:'plan',subs:[['m3-objectifs','3.1 Objectifs et actions'],['m3-fiches','3.2 Fiche de maîtrise opérationnelle'],['m3-veille','3.3 Veille réglementaire'],['m3-risques','3.4 Risques et opportunités']]},
  {id:'m4',n:4,l:'Support',ic:'supp',subs:[['m4-ressources','4.1 Ressources'],['m4-competences','4.2 Compétences'],['m4-communication','4.3 Communication']]},
- {id:'m5',n:5,l:'Maîtrise opérationnelle',ic:'ops',subs:[['m5-ged','5.1 Gestion électronique des documents'],['m5-planif','5.2 Planification opérationnelle'],['m5-urgences','5.3 Situations d\'urgence'],['m5-fiches','5.4 Fiche de maîtrise opérationnelle']]},
+ {id:'m5',n:5,l:'Maîtrise opérationnelle',ic:'ops',subs:[['m5-ged','5.1 Gestion électronique des documents'],['m5-planif','5.2 Planification opérationnelle'],['m5-urgences','5.3 Situations d\'urgence']]},
  {id:'m6',n:6,l:'Performance & amélioration',ic:'perf',subs:[['m6-surveillance','6.1 Surveillance et mesures'],['m6-audits','6.2 Audits'],['m6-revues','6.3 Revues'],['m6-nc','6.4 Non-conformités et actions'],['m6-registre','6.5 Registre d\'amélioration continue']]}
 ];
-export const MOD_FULL = {m1:'Module 1 — Contexte de l\'organisme',m2:'Module 2 — Leadership',m3:'Module 3 — Planification',m4:'Module 4 — Support',m5:'Module 5 — Maîtrise opérationnelle',m6:'Module 6 — Évaluation des performances et amélioration continue'};
+export const MOD_FULL = {m1:'Module 1 — Contexte de l\'organisme',m2:'Module 2 — Leadership',m3:'Module 3 — Objectifs, conformité, maîtrise opérationnelle et risques',m4:'Module 4 — Support',m5:'Module 5 — Maîtrise opérationnelle',m6:'Module 6 — Évaluation des performances et amélioration continue'};
 export const GEN = [['cover','Couverture normative','cover'],['journal','Journal d\'audit','log'],['users','Utilisateurs et rôles','users'],['settings','Paramètres','set'],['help','Centre d\'aide','help']];
 
 export type NormId = '9001' | '14001' | '45001' | '27001'

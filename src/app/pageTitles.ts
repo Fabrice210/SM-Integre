@@ -1,4 +1,4 @@
-/** Titres de page (PAGES[id].t de l'original), affichés dans le fil d'Ariane. */
+/** Titres de page (PAGES[id].t de l'original), affichés dans le fil d'Ariane. Généré par scripts/extract-reference.mjs. */
 export const PAGE_TITLES: Record<string, string> = {
   "dashboard": "Tableau de bord",
   "cover": "Couverture normative",
@@ -14,16 +14,16 @@ export const PAGE_TITLES: Record<string, string> = {
   "m2-politique": "2.2 Politique SM",
   "m2-roles": "2.3 Rôles et responsabilités",
   "m2-consultation": "2.4 Consultation et participation",
-  "m3-objectifs": "3.1 Objectifs et plans d'action",
-  "m3-veille": "3.2 Veille et mise en conformité",
-  "m3-risques": "3.3 Risques et opportunités",
+  "m3-objectifs": "3.1 Objectifs et actions",
+  "m3-veille": "3.3 Veille réglementaire",
+  "m3-risques": "3.4 Risques et opportunités",
   "m4-ressources": "4.1 Ressources",
   "m4-competences": "4.2 Compétences",
   "m4-communication": "4.3 Communication",
   "m5-ged": "5.1 Gestion électronique des documents",
   "m5-planif": "5.2 Planification opérationnelle",
   "m5-urgences": "5.3 Situations d'urgence",
-  "m5-fiches": "5.4 Fiche de maîtrise opérationnelle",
+  "m3-fiches": "3.2 Fiche de maîtrise opérationnelle",
   "m6-surveillance": "6.1 Surveillance et mesures",
   "m6-audits": "6.2 Audits",
   "m6-revues": "6.3 Revues",

@@ -6,6 +6,12 @@ import { nowStamp } from '../lib/dates'
 import { localRepository as repo } from '../services/persistence'
 import type { AppState, Persisted, UiState } from './types'
 
+/**
+ * Version des données de démo : à incrémenter quand l'original change ses données
+ * (scripts/extract-reference.mjs). Une sauvegarde plus ancienne est alors remplacée.
+ */
+export const DATA_VERSION = 2
+
 /** Données initiales : copie profonde de la démo (l'original n'est jamais muté). */
 export function initialData(): Persisted {
   return {
@@ -17,12 +23,14 @@ export function initialData(): Persisted {
     erpModule: false,
     uidSeq: 100,
     onboarded: false,
+    dataVersion: DATA_VERSION,
   }
 }
 
 /** Données sauvegardées, sinon démo ; une session marquée « onboarded » vaut onboarding terminé. */
 function loadInitial(): Persisted {
-  const data = repo.loadData() ?? initialData()
+  const saved = repo.loadData()
+  const data = saved && saved.dataVersion === DATA_VERSION ? saved : initialData()
   const session = repo.loadSession()
   return { ...data, onboarded: Boolean(data.onboarded || session?.onboarded) }
 }
@@ -69,7 +77,7 @@ export const useApp = create<AppState & Actions>()(
 export const update = (recipe: (s: AppState) => void) => useApp.getState().update(recipe)
 
 /* ---------- Sauvegarde automatique (données + session) ---------- */
-const PERSISTED_KEYS = ['db', 'org', 'users', 'activeNorms', 'auditorAccess', 'erpModule', 'uidSeq', 'onboarded'] as const
+const PERSISTED_KEYS = ['db', 'org', 'users', 'activeNorms', 'auditorAccess', 'erpModule', 'uidSeq', 'onboarded', 'dataVersion'] as const
 
 useApp.subscribe((s, prev) => {
   // immer ne crée de nouvelles références que pour ce qui a réellement changé
