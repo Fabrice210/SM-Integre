@@ -1,5 +1,5 @@
 import type { NormId, Org, User } from '../data/referentiels'
-import type { Seed } from '../data/seed'
+import type { DemoData } from '../data/migrations'
 
 export type NormFilter = 'all' | 'cross' | NormId
 
@@ -10,7 +10,8 @@ export interface Session {
 
 /** Données métier sauvegardées (équivalent de DB + ORG + USERS + réglages de l'original). */
 export interface Persisted {
-  db: Seed
+  /** Données de démo (DB), complétées par les migrations de la v2. */
+  db: DemoData
   org: Org
   users: User[]
   activeNorms: NormId[]

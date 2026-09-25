@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { ALL_N, ORG, USERS, type NormId } from '../data/referentiels'
+import { migrateDemo } from '../data/migrations'
 import { seed } from '../data/seed'
 import { nowStamp } from '../lib/dates'
 import { localRepository as repo } from '../services/persistence'
@@ -15,7 +16,7 @@ export const DATA_VERSION = 2
 /** Données initiales : copie profonde de la démo (l'original n'est jamais muté). */
 export function initialData(): Persisted {
   return {
-    db: structuredClone(seed),
+    db: migrateDemo(structuredClone(seed)),
     org: structuredClone(ORG),
     users: structuredClone(USERS),
     activeNorms: [...ALL_N] as NormId[],
