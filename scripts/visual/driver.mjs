@@ -11,6 +11,10 @@
  * scrollLeft = 0, pour que la largeur de l'image reste celle de la fenêtre. Les états
  * superposés (modale, tiroir, panneaux, barre latérale mobile) sont capturés
  * tels qu'affichés dans la fenêtre (shot: 'viewport'), sans dépliage.
+ *
+ * Écart VOULU (v2, demande client) : l'app React est plein écran à toutes les
+ * largeurs (src/styles/fullscreen.css). On injecte la même règle, FULLSCREEN_CSS,
+ * dans l'ORIGINAL uniquement, avant toute capture, pour ne pas compter cet écart.
  */
 import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
@@ -23,11 +27,14 @@ export const REACT_BASE = 'http://localhost:4180'
 const ORIG_PORT = 4190
 
 export const UNFOLD_CSS = `
-.shell{height:auto!important;min-height:calc(100vh - 24px)!important;overflow-x:clip!important;overflow-y:visible!important}
+.shell{height:auto!important;min-height:100vh!important;overflow-x:clip!important;overflow-y:visible!important}
 .main,.content{overflow-x:clip!important;overflow-y:visible!important}
 .content{flex:none!important}
 .onb-main{max-height:none!important;overflow-x:clip!important;overflow-y:visible!important}
 `
+
+/** Copie de src/styles/fullscreen.css — cible original seulement. */
+export const FULLSCREEN_CSS = '.shell{margin:0;height:100vh;border-radius:0;box-shadow:none}'
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.woff2': 'font/woff2', '.js': 'text/javascript' }
 
@@ -71,6 +78,7 @@ export async function openScreen(browser, target, sc) {
   const s = sc.screen
   if (target === 'original') {
     await page.goto(`http://127.0.0.1:${ORIG_PORT}/original.html`, { waitUntil: 'load' })
+    await page.addStyleTag({ content: FULLSCREEN_CSS })
     await page.evaluate((s) => {
       /* global S, render, go, runCfg */
       if (s.kind === 'login') { S.screen = 'login'; render() }

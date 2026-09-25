@@ -4,7 +4,7 @@
  * exprimées uniquement par des sélecteurs/textes identiques sur les deux cibles.
  *   shot: 'full'     → contenu déplié (voir UNFOLD_CSS dans driver.mjs), capture pleine page
  *   shot: 'viewport' → état superposé capturé tel qu'affiché dans la fenêtre
- * Onglets, formulaires et lignes cliquables relevés sur l'original (1440 px).
+ * Onglets, formulaires et lignes cliquables relevés sur l'original v2 (1440 px).
  */
 
 export const WIDTHS = [1440, 1100, 900, 390]
@@ -14,9 +14,9 @@ export const APP_PAGES = [
   'dashboard', 'cover', 'journal', 'users', 'settings', 'help',
   'm1-enjeux', 'm1-parties', 'm1-domaine', 'm1-processus',
   'm2-engagement', 'm2-politique', 'm2-roles', 'm2-consultation',
-  'm3-objectifs', 'm3-veille', 'm3-risques',
+  'm3-objectifs', 'm3-fiches', 'm3-veille', 'm3-risques',
   'm4-ressources', 'm4-competences', 'm4-communication',
-  'm5-ged', 'm5-planif', 'm5-urgences', 'm5-fiches',
+  'm5-ged', 'm5-planif', 'm5-urgences',
   'm6-surveillance', 'm6-audits', 'm6-revues', 'm6-nc', 'm6-registre',
 ]
 
@@ -25,18 +25,19 @@ const TABS = {
   users: ['Utilisateurs', 'Matrice des droits'],
   'm1-enjeux': ['Facteurs internes (SWOT)', 'Facteurs externes (PESTEL)', 'Enjeux identifiés', 'Historique des versions'],
   'm1-parties': ['Registre', 'Synthèse par criticité'],
-  'm1-domaine': ['Sites', 'Activités, produits et services', 'Document consolidé', 'Versions'],
+  'm1-domaine': ['Sites', 'Activités, produits et services', 'Applicabilité normative', 'Document consolidé', 'Versions'],
   'm1-processus': ['Cartographie', 'Fiches processus'],
   'm2-engagement': ['Plan stratégique', 'Évaluation de la mise en œuvre', 'Autres politiques (champs personnalisés)'],
   'm2-roles': ['Fiches de poste', 'Organigramme'],
   'm2-consultation': ['Représentants des travailleurs', 'Comité hygiène et santé', 'Réunions de consultation'],
   'm3-objectifs': ['Liste des objectifs', 'Vue par processus', 'Vue par axe stratégique', 'Suivi des actions'],
-  'm3-veille': ['Registre réglementaire', "Calendrier d'audit de conformité", 'Déclarations au DG'],
+  'm3-veille': ['Registre réglementaire', "Calendrier d'audit de conformité", 'Rapports de conformité'],
   'm3-risques': ['Risques', 'Opportunités', 'Cartographie commune', 'Reporting statistique'],
   'm4-competences': ['Matrice des compétences', 'Savoirs critiques', 'Plan de formation et évaluations'],
   'm5-ged': ['Documents', 'Bibliothèque de modèles', 'Archives'],
   'm6-surveillance': ['Indicateurs', 'Tableau de bord', 'Intervenants externes', 'Statistiques de surveillance', 'Registre de veille'],
-  'm6-audits': ['Plan annuel', 'Liste des audits', 'Auditeurs'],
+  'm6-audits': ['Planification', 'Diffusion & rapports', 'Actions'],
+  'm6-revues': ['Planification', 'Compte-rendu', 'Actions'],
   'm6-nc': ['Tous les éléments', 'Non-conformité', 'Accident / incident', "Piste d'amélioration", 'Observation'],
 }
 
@@ -50,6 +51,7 @@ const CREATE = {
   'm2-roles': 'Créer une fiche de poste',
   'm2-consultation': 'Ajouter un représentant',
   'm3-objectifs': 'Définir un objectif',
+  'm3-fiches': 'Créer une fiche',
   'm3-veille': 'Ajouter un texte',
   'm3-risques': 'Créer une fiche risque',
   'm4-ressources': 'Planifier une ressource',
@@ -57,18 +59,18 @@ const CREATE = {
   'm5-ged': 'Créer une fiche documentaire',
   'm5-planif': "Recenser un plan d'action",
   'm5-urgences': 'Créer une fiche',
-  'm5-fiches': 'Créer une fiche',
   'm6-surveillance': 'Définir un indicateur',
   'm6-audits': 'Planifier un audit',
   'm6-revues': 'Créer une revue',
   'm6-nc': 'Déclarer une non-conformité',
 }
 
-/** Pages ayant au moins une ligne `.content .tbl tbody tr.click` à l'affichage par défaut. */
+/** Pages ayant au moins une ligne `.content .tbl tbody tr.click` ouvrant un tiroir ou une modale
+ *  (celles du tableau de bord naviguent vers m3-objectifs : exclues). */
 const ROWS = [
   'm1-parties', 'm1-domaine', 'm2-engagement', 'm2-politique', 'm2-roles', 'm2-consultation',
-  'm3-objectifs', 'm3-veille', 'm3-risques', 'm4-ressources', 'm4-communication',
-  'm5-ged', 'm5-planif', 'm5-fiches', 'm6-surveillance', 'm6-nc', 'm6-registre',
+  'm3-objectifs', 'm3-fiches', 'm3-veille', 'm3-risques', 'm4-ressources', 'm4-communication',
+  'm5-ged', 'm5-planif', 'm6-surveillance', 'm6-audits', 'm6-revues', 'm6-nc', 'm6-registre',
 ]
 
 const NORM_BTNS = ['Tous', '9001', '14001', '45001', '27001', 'Vue croisée']
