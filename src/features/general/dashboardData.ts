@@ -51,6 +51,15 @@ export function upcoming(db: Seed): Upcoming[] {
   db.documents.forEach(
     (d) => d.statut !== 'Obsolète' && add('Revue ' + d.ref, d.dateRevue, 'GED', d.proprietaire)
   )
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const D = db as any
+  D.revues.forEach(
+    (r: { statut: string; type?: string; ref: string; date: string }) =>
+      r.statut !== 'Clôturée' && add('Revue : ' + (r.type || r.ref), r.date, 'Revues', r.ref)
+  )
+  ;(D.representants || []).forEach((r: { prenom: string; nom: string; mandatFin: string; fonction: string }) =>
+    add('Fin de mandat : ' + r.prenom + ' ' + r.nom, r.mandatFin, 'Consultation', r.fonction)
+  )
   return L.sort((a, b) => new Date(a.d).getTime() - new Date(b.d).getTime())
 }
 

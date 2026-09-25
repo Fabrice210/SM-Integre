@@ -98,17 +98,16 @@ export function cfgItems(db: Seed, activeN: readonly NormId[]): [string, string]
         (activeN.includes('45001') ? ', consultation des travailleurs (ISO 45001 §5.4)' : ''),
     ],
     [
-      'Module 3 — Planification',
-      'Objectifs, veille réglementaire, registre unique des risques' +
+      'Module 3 — Objectifs, conformité et risques',
+      'Objectifs et actions, fiche de maîtrise opérationnelle, veille réglementaire, registre unique des risques' +
         (activeN.includes('14001') ? ', gestion des changements (ISO 14001:2026 §6.3)' : '') +
         (activeN.includes('27001') ? ", déclaration d'applicabilité (ISO 27001)" : ''),
     ],
     ['Module 4 — Support', 'Ressources, matrice des compétences, plan de communication'],
     [
       'Module 5 — Maîtrise opérationnelle',
-      "GED avec workflow, situations d'urgence" +
-        (activeN.includes('45001') ? ' (DUERP en vue filtrée)' : '') +
-        ', fiches de maîtrise',
+      "GED avec workflow et bibliothèque de modèles, situations d'urgence" +
+        (activeN.includes('45001') ? ' (DUERP en vue filtrée)' : '')
     ],
     [
       'Module 6 — Performance',

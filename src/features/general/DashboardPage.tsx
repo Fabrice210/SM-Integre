@@ -12,6 +12,7 @@ import { computeAlerts } from '../../services/alerts'
 import { currentUser, update, useApp } from '../../store/useApp'
 import { toast } from '../../store/useOverlays'
 import { CrossView } from './CrossView'
+import { DashProcBlock, DashStatsBlock } from './DashBlocks'
 import { coverage, openActions } from '../../services/metrics'
 import { journalMods, upcoming, withId } from './dashboardData'
 
@@ -32,14 +33,12 @@ export function DashboardPage() {
   const cov = coverage(db, activeNorms, norm)
   const acts = useMemo(() => openActions(db, norm), [db, norm])
   const late = acts.filter((a) => (days(a.echeance) ?? 0) < 0).length
-  const ncOpen = db.ncs
-    .filter((n) => inNorm(n, norm))
-    .filter((n) => !['Clôturée', 'Refusée'].includes(n.statut))
   const tx = db.textes.filter((t) => inNorm(t, norm))
   const txOk = tx.length
     ? Math.round((tx.filter((t) => t.statut === 'Fait').length / tx.length) * 100)
     : 0
   const al = useMemo(() => computeAlerts(db, dismissed), [db, dismissed])
+  const redCount = al.filter((a) => a.lvl === 'red').length
   const ch = chart === 'mois' ? db.cloturesMois : db.cloturesAn
   const max = Math.max(...ch.clotures, ...ch.ouvertures)
   const top = Math.ceil(max / 5) * 5 + 5
@@ -110,17 +109,19 @@ export function DashboardPage() {
           page="m3-objectifs"
         />
         <StatCard
-          icon="warn"
-          title="Non-conformités ouvertes"
-          lbl="NC, incidents et pistes"
-          val={ncOpen.length}
+          icon="bell"
+          title="Alertes actives"
+          lbl="Échéances et écarts sous surveillance"
+          val={al.length}
           badge={
-            <span className="badge b-amber">
-              {ncOpen.filter((n) => n.statut === 'Déclarée').length} à valider
-            </span>
+            redCount ? (
+              <span className="badge b-red">{redCount} critiques</span>
+            ) : (
+              <span className="badge b-green">à jour</span>
+            )
           }
-          foot="Traiter les écarts"
-          page="m6-nc"
+          foot="Voir les alertes"
+          onFoot={() => update((s) => void (s.ui.notif = true))}
         />
         <StatCard
           icon="flag"
@@ -243,6 +244,8 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+      <DashProcBlock />
+      <DashStatsBlock />
       {norm === 'cross' ? <CrossView /> : null}
       <div className="grid g2 mb">
         <div className="card">
@@ -332,16 +335,18 @@ export function DashboardPage() {
 }
 
 interface StatCardProps {
-  icon: 'clock' | 'warn' | 'flag'
+  icon: 'clock' | 'bell' | 'flag'
   title: string
   lbl: string
   val: number | string
   badge: ReactNode
   foot: string
-  page: string
+  page?: string
+  /** Action du pied de carte (sinon go(page)). */
+  onFoot?: () => void
 }
 
-function StatCard({ icon, title, lbl, val, badge, foot, page }: StatCardProps) {
+function StatCard({ icon, title, lbl, val, badge, foot, page, onFoot }: StatCardProps) {
   return (
     <div className="card stat">
       <div className="stat-top">
@@ -357,7 +362,7 @@ function StatCard({ icon, title, lbl, val, badge, foot, page }: StatCardProps) {
         <span className="val">{val}</span>
         {badge}
       </div>
-      <button className="foot" onClick={() => go(page)}>
+      <button className="foot" onClick={onFoot ?? (() => go(page!))}>
         {foot} <Icon name="arrow" size={15} />
       </button>
     </div>
