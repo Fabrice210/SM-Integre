@@ -1,4 +1,6 @@
-/** 5.1 Gestion électronique des documents (original l.1558-1563, 1582-1588). */
+/** 5.1 Gestion électronique des documents (original v2 l.1688-1694, 1714-1728). */
+import { useState } from 'react'
+import { go } from '../../app/navigation'
 import { DataTable } from '../../components/data/DataTable'
 import { DueDate, NormBadges, StatusBadge } from '../../components/ui/badges'
 import { Icon } from '../../components/ui/Icon'
@@ -39,6 +41,9 @@ export const gedForms: Record<string, FormDef> = {
       { k: 'proprietaire', l: 'Propriétaire', t: 'select', o: userNames },
       { k: 'processus', l: 'Processus', t: 'select', o: procOpts },
       { k: 'dateRevue', l: 'Date de prochaine revue', t: 'date', req: 1 },
+      { k: 'dateVersion', l: 'Date de version', t: 'date' },
+      { k: 'redacteur', l: 'Rédacteur', t: 'select', o: userNames },
+      { k: 'approbateur', l: 'Approbateur', t: 'select', o: userNames },
       { k: 'normes', l: 'Normes applicables', t: 'norms', req: 1 },
       { k: 'droits', l: "Droits d'accès (lecture, modification, validation)", req: 1, full: 1 },
       { k: 'diffusion', l: 'Liste de diffusion', req: 1, full: 1 },
@@ -54,7 +59,7 @@ export const gedForms: Record<string, FormDef> = {
           ]
         : []),
     ],
-    def: () => ({
+    def: (s) => ({
       ref: 'PR-HSE-08',
       intitule: 'Gestion des déchets de production',
       type: 'Procédure',
@@ -70,11 +75,22 @@ export const gedForms: Record<string, FormDef> = {
       version: '1',
       statut: 'Rédaction',
       dateCreation: iso(TODAY),
+      dateVersion: iso(TODAY),
+      redacteur: currentUser(s).nom,
+      approbateur: 'Florence DOSSOU-YOVO',
     }),
     save: (s, r, n) => {
       if (n) {
-        r.versions = [{ v: '1', date: iso(TODAY), auteur: currentUser(s).nom, contenu: r.contenu }]
+        r.versions = [
+          {
+            v: '1',
+            date: iso(TODAY),
+            auteur: r.redacteur || currentUser(s).nom,
+            contenu: r.contenu,
+          },
+        ]
         delete r.contenu
+        if (!r.dateVersion) r.dateVersion = iso(TODAY)
         return "Document créé à l'étape Rédaction."
       }
     },
@@ -87,12 +103,24 @@ export const gedForms: Record<string, FormDef> = {
     fields: [
       { k: 'nom', l: 'Nom du modèle', req: 1 },
       { k: 'type', l: 'Type', t: 'select', o: DOC_TYPES },
+      {
+        k: 'processus',
+        l: 'Processus',
+        t: 'select',
+        o: () => [
+          'Tous',
+          ...DB(useApp.getState()).processus.map(
+            (p: Any) => [p.id, p.code + ' — ' + p.intitule] as [string, string]
+          ),
+        ],
+      },
       { k: 'description', l: 'Structure du modèle', t: 'textarea', req: 1 },
       { k: 'fichier', l: 'Fichier du modèle', t: 'file', req: 1 },
     ],
     def: () => ({
       nom: 'Modèle de fiche de données de sécurité',
       type: 'Enregistrement',
+      processus: 'Tous',
       description: 'Produit, dangers, EPI, premiers secours, stockage',
       fichier: 'Modele_FDS.docx',
     }),
@@ -115,6 +143,9 @@ export function GedPage() {
     ['mod', 'Bibliothèque de modèles'],
     ['arc', 'Archives'],
   ])
+  // S.modType / S.modProc de l'original : filtres de la bibliothèque de modèles
+  const [mt, setMt] = useState('')
+  const [mp, setMp] = useState('')
   const D: Any[] = db.documents
   let c = null
   if (t === 'doc')
@@ -135,6 +166,8 @@ export function GedPage() {
           },
           { l: 'Type', k: 'type' },
           { l: 'Version', r: (d) => 'v' + d.versions.at(-1).v },
+          { l: 'Rédacteur', r: (d) => d.redacteur || '—' },
+          { l: 'Approbateur', r: (d) => d.approbateur || '—' },
           { l: 'Processus', r: (d) => <span className="badge b-grey">{d.processus}</span> },
           { l: 'Statut', r: (d) => <StatusBadge value={d.statut} /> },
           { l: 'Prochaine revue', r: (d) => <DueDate date={d.dateRevue} /> },
@@ -158,35 +191,76 @@ export function GedPage() {
         exportName="Liste_des_documents"
       />
     )
-  if (t === 'mod')
+  if (t === 'mod') {
+    const ML: Any[] = db.modeles.filter(
+      (m: Any) => (!mt || m.type === mt) && (!mp || m.processus === mp || m.processus === 'Tous')
+    )
     c = (
       <>
-        <div className="grid g4 mb">
-          {db.modeles.map((m: Any) => (
-            <div key={m.id} className="card flat">
-              <div className="stat-ic">
-                <Icon name="doc" size={18} />
-              </div>
-              <h3 style={{ fontSize: 14, margin: '10px 0 4px' }}>{m.nom}</h3>
-              <div className="small muted">
-                {m.type} — {m.description}
-              </div>
-              <div className="btn-row" style={{ marginTop: 10 }}>
-                <button className="btn sm" onClick={() => utiliserModele(m)}>
-                  Utiliser
-                </button>
-                <button className="btn sm ghost" onClick={() => openForm('modeles', m.id)}>
-                  Modifier
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="toolbar">
+          <select
+            className="sel"
+            value={mt}
+            onChange={(e) => setMt(e.target.value)}
+            aria-label="Type de document"
+          >
+            <option value="">Type : tous</option>
+            {DOC_TYPES.map((d) => (
+              <option key={d}>{d}</option>
+            ))}
+          </select>
+          <select
+            className="sel"
+            value={mp}
+            onChange={(e) => setMp(e.target.value)}
+            aria-label="Processus"
+          >
+            <option value="">Processus : tous</option>
+            {db.processus.map((p: Any) => (
+              <option key={p.id} value={p.id}>
+                {p.code} — {p.intitule}
+              </option>
+            ))}
+          </select>
+          <span style={{ flex: 1 }}></span>
+          <button className="btn sm" onClick={() => openForm('modeles')}>
+            <Icon name="plus" size={14} /> Charger un modèle
+          </button>
         </div>
-        <button className="btn sm" onClick={() => openForm('modeles')}>
-          <Icon name="plus" size={14} /> Charger un modèle
-        </button>
+        <div className="grid g4">
+          {ML.length ? (
+            ML.map((m: Any) => (
+              <div key={m.id} className="card flat">
+                <div className="stat-ic">
+                  <Icon name="doc" size={18} />
+                </div>
+                <h3 style={{ fontSize: 14, margin: '10px 0 4px' }}>{m.nom}</h3>
+                <div className="small muted">
+                  {m.type}
+                  {m.processus && m.processus !== 'Tous'
+                    ? ' · ' +
+                      ((db.processus.find((p: Any) => p.id === m.processus) || {}).code ||
+                        m.processus)
+                    : ''}{' '}
+                  — {m.description}
+                </div>
+                <div className="btn-row" style={{ marginTop: 10 }}>
+                  <button className="btn sm" onClick={() => utiliserModele(m)}>
+                    Utiliser
+                  </button>
+                  <button className="btn sm ghost" onClick={() => openForm('modeles', m.id)}>
+                    Modifier
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="empty">Aucun modèle ne correspond à ce filtre.</div>
+          )}
+        </div>
       </>
     )
+  }
   if (t === 'arc')
     c = (
       <>
@@ -225,6 +299,21 @@ export function GedPage() {
         title="5.1 Gestion électronique des documents"
         desc="Fiches documentaires, workflow rédaction → vérification → approbation, versions comparables, diffusion contrôlée et archivage."
       />
+      <div className="note mb">
+        <Icon name="arrow" size={14} /> La <b>Fiche de maîtrise opérationnelle</b> (ancien 5.4) est
+        désormais rattachée au Module 3 —{' '}
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault()
+            go('m3-fiches')
+          }}
+        >
+          ouvrir la 3.2
+        </a>
+        . Cible d'évolution (niveau avancé) : une planification chargée dans la GED pourra alimenter
+        automatiquement le plan d'action correspondant.
+      </div>
       <div className="grid g4 mb">
         {stats.map(([a, b]) => (
           <div key={a} className="card">

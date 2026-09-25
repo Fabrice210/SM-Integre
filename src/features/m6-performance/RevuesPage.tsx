@@ -1,6 +1,9 @@
-/** 6.3 Revues (original l.1653-1664). */
+/** 6.3 Revues (original v2 l.1786-1803). */
+import { go } from '../../app/navigation'
+import { DataTable } from '../../components/data/DataTable'
+import { useTabs } from '../../components/ui/Tabs'
 import { openDetail } from '../../components/data/Detail'
-import { NormBadges, StatusBadge } from '../../components/ui/badges'
+import { DueDate, NormBadges, StatusBadge } from '../../components/ui/badges'
 import { Icon } from '../../components/ui/Icon'
 import { PageHead } from '../../components/ui/PageHead'
 import { MOD_FULL } from '../../data/referentiels'
@@ -9,7 +12,6 @@ import { FormRenderer } from '../../forms/FormRenderer'
 import { readForm } from '../../forms/formControllers'
 import type { FieldDef, FormDef } from '../../forms/types'
 import { addDays, days, fd, iso } from '../../lib/dates'
-import { inNorm } from '../../lib/norms'
 import { userNames } from '../../lib/lookups'
 import { printDoc } from '../../services/exports'
 import { taux } from '../../services/metrics'
@@ -34,7 +36,7 @@ export const revuesForms: Record<string, FormDef> = {
       { k: 'date', l: 'Date de la réunion de pilotage', t: 'date', req: 1 },
       {
         k: 'type',
-        l: 'Type de revue',
+        l: 'Type / objet de la revue',
         t: 'select',
         o: [
           'Revue de direction semestrielle',
@@ -43,6 +45,7 @@ export const revuesForms: Record<string, FormDef> = {
           "Revue de sécurité de l'information",
         ],
       },
+      { k: 'participants', l: 'Participants', t: 'textarea' },
       { k: 'normes', l: 'Normes couvertes', t: 'norms', req: 1 },
       { k: 'ordreDuJour', l: 'Ordre du jour (un point par ligne)', t: 'textarea', req: 1 },
       { k: 'rapportEntree', l: "Rapport d'entrée", t: 'textarea', req: 1 },
@@ -52,6 +55,7 @@ export const revuesForms: Record<string, FormDef> = {
       ref: 'RP-2026-P05',
       date: addDays(21),
       type: 'Revue de processus',
+      participants: 'Direction, pilotes de processus, responsable SM',
       normes: ['9001', '45001'],
       ordreDuJour:
         "Performance du processus Transformation\nRésultats des audits AUD-2026-02\nAccidents et presqu'accidents\nRessources nécessaires",
@@ -211,6 +215,7 @@ export function revDetail(id: string) {
     sub: fd(r.date),
     rows: [
       ['Statut', <StatusBadge key="st" value={r.statut} />],
+      ['Participants', r.participants || '—'],
       ['Normes', <NormBadges key="nb" norms={r.normes} />],
       [
         'Ordre du jour',
@@ -283,46 +288,113 @@ export function revDetail(id: string) {
 
 export function RevuesPage() {
   const revues = useApp((s) => s.db.revues) as Any[]
-  const norm = useApp((s) => s.ui.norm)
+  const [t, tb] = useTabs('rev', [
+    ['plan', 'Planification'],
+    ['cr', 'Compte-rendu'],
+    ['act', 'Actions'],
+  ])
+  const odj = (r: Any) => (Array.isArray(r.ordreDuJour) ? r.ordreDuJour.length : 0)
+  let c = null
+  if (t === 'plan')
+    c = (
+      <div className="card">
+        <DataTable
+          id="revplan"
+          cols={[
+            { l: 'Référence', r: (r) => <span className="ttl">{r.ref}</span> },
+            { l: 'Type / objet', k: 'type' },
+            { l: 'Date de pilotage', r: (r) => fd(r.date) },
+            { l: 'Participants', r: (r) => <span className="small">{r.participants || '—'}</span> },
+            { l: 'Ordre du jour', r: (r) => odj(r) + ' point(s)', cls: 'num' },
+            { l: 'Statut', r: (r) => <StatusBadge value={r.statut} /> },
+          ]}
+          rows={revues}
+          onRowClick={revDetail}
+          norm={false}
+          onAdd={() => openForm('revues')}
+          addLabel="Créer une revue"
+          exportName="Planification_revues"
+        />
+      </div>
+    )
+  if (t === 'cr')
+    c = (
+      <div className="card">
+        <DataTable
+          id="revcr"
+          cols={[
+            { l: 'Référence', r: (r) => <span className="ttl">{r.ref}</span> },
+            { l: 'Type', k: 'type' },
+            { l: "Rapport d'entrée", r: (r) => <span className="small">{r.rapportEntree}</span> },
+            { l: 'Procès-verbal', r: (r) => <span className="small">{r.pv}</span> },
+            { l: 'Statut', r: (r) => <StatusBadge value={r.statut} /> },
+          ]}
+          rows={revues}
+          onRowClick={revDetail}
+          norm={false}
+          exportName="Comptes_rendus_revues"
+        />
+      </div>
+    )
+  if (t === 'act') {
+    const L: Any[] = []
+    revues.forEach((r) =>
+      (r.actions || []).forEach((a: Any, i: number) =>
+        L.push({ ...a, id: r.id + '#' + i, rev: r.ref })
+      )
+    )
+    c = (
+      <>
+        <div className="note mb">
+          <Icon name="arrow" size={14} /> À la clôture d'une revue, les actions sont enregistrées
+          automatiquement au{' '}
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault()
+              go('m6-registre')
+            }}
+          >
+            registre d'amélioration continue (6.5)
+          </a>{' '}
+          et l'ordre du jour de la revue suivante est généré.
+        </div>
+        <div className="card">
+          <DataTable
+            id="revact"
+            cols={[
+              { l: 'Revue', k: 'rev' },
+              { l: 'Action décidée', r: (a) => <span className="ttl">{a.libelle}</span> },
+              { l: 'Responsable', k: 'responsable' },
+              {
+                l: 'Échéance',
+                r: (a) => <DueDate date={a.echeance} done={a.statut === 'Clôturé'} />,
+              },
+              { l: 'Statut', r: (a) => <StatusBadge value={a.statut} /> },
+            ]}
+            rows={L}
+            norm={false}
+            empty="Aucune action de revue pour le moment."
+            exportName="Actions_revues"
+          />
+        </div>
+      </>
+    )
+  }
   return (
     <>
       <PageHead
         kicker={MOD_FULL.m6}
         title="6.3 Revues"
-        desc="Ordre du jour, rapport d'entrée, réunion de pilotage, procès-verbal et plan d'action ; l'ordre du jour de la revue suivante est préparé automatiquement."
+        desc="Même principe d'onglets que les audits : Planification (objet, date, participants, ordre du jour), Compte-rendu (rapport d'entrée, procès-verbal) et Actions (plan d'action enregistré au registre 6.5, ordre du jour de la revue suivante généré)."
         actions={
           <button className="btn primary" onClick={() => openForm('revues')}>
             <Icon name="plus" size={15} /> Créer une revue
           </button>
         }
       />
-      <div className="grid g2">
-        {revues
-          .filter((r) => inNorm(r, norm))
-          .map((r) => (
-            <div
-              key={r.id}
-              className="card"
-              style={{ cursor: 'pointer' }}
-              onClick={() => revDetail(r.id)}
-            >
-              <div className="btn-row" style={{ justifyContent: 'space-between' }}>
-                <span className="badge b-blue">{r.ref}</span>
-                <StatusBadge value={r.statut} />
-              </div>
-              <h3 style={{ fontSize: 15, margin: '10px 0 2px' }}>{r.type}</h3>
-              <div className="small muted">
-                {fd(r.date)} — {r.ordreDuJour.length} points à l'ordre du jour — {r.actions.length}{' '}
-                action(s)
-              </div>
-              <div style={{ marginTop: 8 }}>
-                <NormBadges norms={r.normes} />
-              </div>
-              <hr className="sep" />
-              <div className="small">{r.pv === '—' ? r.rapportEntree : r.pv}</div>
-            </div>
-          ))}
-      </div>
+      {tb}
+      {c}
     </>
   )
 }
