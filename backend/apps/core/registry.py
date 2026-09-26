@@ -13,6 +13,7 @@ Le nom est celui de la clé dans `db` côté front. Le registre sert à :
   - charger les données de démonstration (manage.py load_demo).
 """
 
+import re
 from dataclasses import dataclass, field
 
 from django.db import models
@@ -42,7 +43,12 @@ class Collection:
     def __post_init__(self):
         self.app_label = self.model._meta.app_label
         if not self.url:
-            self.url = "".join("-" + c.lower() if c.isupper() else c for c in self.name)
+            self.url = kebab(self.name)
+
+
+def kebab(name: str) -> str:
+    """analyseVersions -> analyse-versions ; sourcesNC -> sources-nc."""
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "-", name).lower()
 
 
 _REGISTRY: dict[str, Collection] = {}

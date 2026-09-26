@@ -145,7 +145,7 @@ class Audit(NormesMixin, OrgModel):
     constats = models.JSONField(
         default=list, blank=True, help_text="Constats [{type, description, processus}]"
     )
-    compte_rendu = models.TextField(null=True, blank=True, help_text="Compte-rendu de la réunion de clôture")  # noqa: DJ001
+    compte_rendu = models.TextField(null=True, blank=True, help_text="Compte-rendu de la réunion de clôture")
 
     class Meta(OrgModel.Meta):
         verbose_name = "audit"
@@ -239,7 +239,7 @@ class NonConformite(NormesMixin, OrgModel):
     )
     cause = models.TextField(blank=True, help_text="Analyse des causes (5 Pourquoi / Ishikawa)")
     action = models.TextField(blank=True, help_text="Action corrective / acte / plan d'action")
-    mise_en_oeuvre = models.TextField(null=True, blank=True, help_text="Mise en œuvre (accidents)")  # noqa: DJ001
+    mise_en_oeuvre = models.TextField(null=True, blank=True, help_text="Mise en œuvre (accidents)")
     lieu = models.CharField(max_length=255, blank=True)
     processus = models.CharField(max_length=32, blank=True, help_text="Processus (id P01…)")
     statut = models.CharField(max_length=16, choices=Statut.choices, default=Statut.DECLAREE)
@@ -258,7 +258,7 @@ class NonConformite(NormesMixin, OrgModel):
     date = models.DateField()
     declarant = models.CharField(max_length=255, blank=True, help_text="Déclarant (nom complet)")
     origine = models.CharField(max_length=255, blank=True, help_text="Origine (AUD-2026-02, Terrain…)")
-    efficacite = models.TextField(null=True, blank=True, help_text="Évaluation de l'efficacité à la clôture")  # noqa: DJ001
+    efficacite = models.TextField(null=True, blank=True, help_text="Évaluation de l'efficacité à la clôture")
 
     class Meta(OrgModel.Meta):
         verbose_name = "non-conformité"

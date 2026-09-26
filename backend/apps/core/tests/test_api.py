@@ -87,3 +87,22 @@ def test_validation_errors_use_front_field_names(api):
     r = api.post("/api/v1/processus/", {"id": "P01", "code": "X", "intitule": "X"}, format="json")
     assert r.status_code == 400
     assert set(r.json()) == {"id", "categorie"}
+
+
+def test_create_at_start(api):
+    r = api.post(
+        "/api/v1/processus/?at=start",
+        {"code": "P00", "intitule": "Tête", "categorie": "Support"},
+        format="json",
+    )
+    assert r.status_code == 201
+    assert api.get("/api/v1/processus/").json()[0]["code"] == "P00"
+    assert api.get("/api/v1/bootstrap/").json()["db"]["processus"][0]["code"] == "P00"
+
+
+def test_kebab_urls():
+    from apps.core.registry import kebab
+
+    assert kebab("analyseVersions") == "analyse-versions"
+    assert kebab("sourcesNC") == "sources-nc"
+    assert kebab("plansOps") == "plans-ops"

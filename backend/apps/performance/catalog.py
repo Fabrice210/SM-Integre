@@ -69,7 +69,6 @@ register(
     module="m6",
     singleton=True,
     load_order=60,
-    url="sources-nc",  # et non « sources-n-c »
 )
 register(
     "ncs",

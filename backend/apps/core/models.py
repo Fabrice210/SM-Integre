@@ -99,7 +99,7 @@ class OrgModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     # Ordre d'affichage (le front conserve l'ordre des tableaux).
-    position = models.PositiveIntegerField(default=0)
+    position = models.IntegerField(default=0)
     # Champs envoyés par le client sans colonne dédiée (hist, champs ajoutés par
     # une nouvelle version de l'interface…) : conservés et renvoyés tels quels.
     extra = models.JSONField(default=dict, blank=True)
