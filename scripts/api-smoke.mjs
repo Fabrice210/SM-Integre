@@ -36,11 +36,11 @@ page.on('response', (r) => {
   if (r.url().startsWith(API))
     calls.push(`${r.request().method()} ${r.url().slice(API.length)} ${r.status()}`)
 })
-const waitCall = (method, path, status) =>
+const waitCall = (method, path, status, re) =>
   page.waitForResponse(
     (r) =>
       r.request().method() === method &&
-      r.url() === API + path &&
+      (re ? re.test(r.url()) : r.url() === API + path) &&
       (!status || r.status() === status),
     { timeout: 10000 }
   )
@@ -64,11 +64,17 @@ async function server(path, method = 'GET') {
 const serverGet = (path) => server(path)
 
 /** Modification du store depuis la page (serveur de dev Vite : même module que l'app). */
-const storeUpdate = (fn) =>
+const storeUpdate = (src) =>
   page.evaluate(
-    (src) => import('/src/store/useApp.ts').then((m) => m.update(new Function('s', src))),
-    fn
+    (src) =>
+      import('/src/store/useApp.ts').then((m) =>
+        m.update((s) => new Function('s', 'm', src)(s, m))
+      ),
+    src
   )
+/** Appelle une action du front (module servi par Vite). */
+const frontCall = (mod, fn, ...args) =>
+  page.evaluate(([mod, fn, args]) => import(mod).then((m) => m[fn](...args)), [mod, fn, args])
 
 try {
   await server('/processus/P13/', 'DELETE') // reste éventuel d'un passage précédent
@@ -158,10 +164,11 @@ try {
   await page.click('button:has-text("Fiches processus")')
   await page.click('button:has-text("Créer une fiche processus")')
   const code = await page.inputValue('[data-f="code"] .inp')
-  let post = waitCall('POST', '/processus/')
+  let post = waitCall('POST', '/processus/?at=start')
   await page.click('#saveBtn')
   let created = await (await post).json()
-  check(created.id === code, `POST /processus/ 201 -> id client ${created.id}`)
+  check(created.id === code, `POST /processus/?at=start 201 -> id client ${created.id}`)
+  check((await serverGet('/processus/'))[0]?.id === code, 'insérée en tête côté serveur (unshift)')
 
   // 6. Conflit : l'élément est supprimé côté serveur, puis modifié à l'écran
   //    -> PUT 404 sur une collection servie : toast + rechargement (bootstrap)
@@ -185,7 +192,7 @@ try {
 
   // 7. Recréation puis suppression (via le store : pas de bouton Supprimer sur un processus)
   await page.click('button:has-text("Créer une fiche processus")')
-  post = waitCall('POST', '/processus/')
+  post = waitCall('POST', '/processus/?at=start')
   await page.click('#saveBtn')
   created = await (await post).json()
   check(created.id === code, `POST /processus/ 201 (recréation ${code})`)
@@ -195,26 +202,53 @@ try {
   const list = await serverGet('/processus/')
   check(!list.some((p) => p.id === code), 'suppression persistée côté serveur')
 
-  // 8. Collection pas encore servie par le backend : 404 gérée (toast, pas de plantage)
-  const served = Object.keys((await serverGet('/bootstrap/')).db)
-  if (!served.includes('parties')) {
-    await page.goto(BASE + '/m1-parties')
-    await page.locator('.content tbody tr.click').first().click()
-    await page.click('.drawer button:has-text("Modifier")')
-    await page.click('#saveBtn')
-    await page.waitForTimeout(1000)
-    check(
-      calls.some((c) => /^PUT \/parties\/.+ 404$/.test(c)),
-      'PUT /parties/… 404 (non servie)'
-    )
-    check(
-      (await toasts()).some((t) => t.includes("n'est pas encore géré par le serveur")),
-      'toast d’avertissement affiché'
-    )
-    check(page.url().endsWith('/m1-parties'), 'app toujours utilisable')
-  } else console.log('(parties déjà servie par le backend : test 404 sauté)')
+  // 8. Autre collection (parties intéressées) modifiée via l'interface
+  await page.goto(BASE + '/m1-parties')
+  await page.locator('.content tbody tr.click').first().click()
+  await page.click('.drawer button:has-text("Modifier")')
+  const pi = waitCall('PUT', undefined, undefined, /\/parties\/[^/]+\/$/)
+  await page.click('#saveBtn')
+  check((await pi).status() === 200, 'PUT /parties/<id>/ 200')
 
-  // 9. Déconnexion : jetons purgés, retour à la connexion
+  // 9. Collection en ajout seul : diffusions -> POST /diffusions/
+  const diff = waitCall('POST', '/diffusions/')
+  await storeUpdate(`(s.db.diffusions = s.db.diffusions || []).unshift({ d: '2026-09-26 10:00',
+    u: 'x', doc: 'Politique SM v3', canal: 'interne', destinataires: 'Tous', piece: '—' })`)
+  check((await diff).status() === 201, 'POST /diffusions/ 201')
+  check(
+    (await serverGet('/diffusions/')).some((x) => x.doc === 'Politique SM v3'),
+    'diffusion enregistrée côté serveur'
+  )
+
+  // 10. Droits : valider une déclaration exige le rôle Dirigeant (u1 = Responsable SM)
+  //     -> PUT refusé (400 ou 403) : erreur affichée, reste de l'action abandonné,
+  //     rechargement
+  await page.goto(BASE + '/m3-veille')
+  await page.waitForSelector('.content')
+  const ncsBefore = (await serverGet('/ncs/')).length
+  const forbidden = waitCall('PUT', '/declarations/DC1/')
+  const resync = waitCall('GET', '/bootstrap/')
+  await frontCall('/src/features/m3-planification/veille.tsx', 'declAct', 'DC1', 'ok')
+  const st = (await forbidden).status()
+  check([400, 403].includes(st), `PUT /declarations/DC1/ ${st} (Dirigeant requis)`)
+  check((await resync).status() === 200, 'rechargement GET /bootstrap/ après refus')
+  await page.waitForTimeout(300)
+  check(
+    (await toasts()).some((t) => t.startsWith('Modification refusée par le serveur')),
+    'erreur du serveur affichée'
+  )
+  const dc1 = await page.evaluate(() =>
+    import('/src/store/useApp.ts').then(
+      (m) => m.useApp.getState().db.declarations.find((d) => d.id === 'DC1').statut
+    )
+  )
+  check(dc1 === 'Soumise', `état local resynchronisé (DC1 : ${dc1})`)
+  check(
+    (await serverGet('/ncs/')).length === ncsBefore,
+    'aucune NC créée pour une validation refusée'
+  )
+
+  // 11. Déconnexion : jetons purgés, retour à la connexion
   await page.goto(BASE + '/dashboard')
   await page.waitForSelector('.content')
   await page.click('.nav-item:has-text("Déconnexion")')

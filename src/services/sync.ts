@@ -13,17 +13,22 @@ import { ApiError, isAuthenticated, request } from './api'
  * modifié (à n'importe quelle profondeur). Les index des patches ne suffisent pas :
  * unshift / splice décalent tous les éléments et produisent des « replace » en série.
  *
- *   élément nouveau   -> POST   /<collection>/          (id fourni par le client)
- *   élément modifié   -> PUT    /<collection>/<id>/     (élément complet)
+ *   élément nouveau   -> POST   /<collection>/[?at=start] (id fourni par le client ;
+ *                                                         en tête si unshift())
+ *   élément modifié   -> PUT    /<collection>/<id>/       (élément complet)
  *   élément supprimé  -> DELETE /<collection>/<id>/
- *   objet unique      -> PUT    /<collection>/          (politique, competences…)
- *   db.journal        -> POST   /journal/               (entrées nouvelles, ajout seul)
+ *   objet unique      -> PUT    /<collection>/            (politique, competences…)
+ *   db.journal        -> POST   /journal/                 (ajout seul)
+ *   db.diffusions     -> POST   /diffusions/              (ajout seul)
  *   org               -> PUT    /organisation/
  *   users             -> POST / PUT / DELETE /users/<id>/
- *   réglages          -> PATCH  /settings/              (activeNorms, auditorAccess…)
+ *   réglages          -> PATCH  /settings/                (activeNorms, auditorAccess…)
  *
  * Les écritures partent dans une file séquentielle ; tant qu'une écriture n'est pas
  * envoyée, une écriture ultérieure sur le même élément s'y fond (un seul appel).
+ * Si le serveur refuse une écriture (4xx : conflit, validation, droits), les écritures
+ * du même update encore en attente (effets liés, journal — envoyé en dernier) sont
+ * abandonnées, l'erreur est affichée et l'état est rechargé (bootstrap).
  */
 
 /** Objets uniques par organisme : pas d'id, GET / PUT / PATCH sur /<url>/. */
@@ -35,6 +40,13 @@ const SINGLETONS = new Set([
   'cloturesMois',
   'cloturesAn',
 ])
+/** Collections en ajout seul (pas de PUT / DELETE) : on n'envoie que les nouvelles entrées. */
+const APPEND_ONLY: Record<string, (e: Rec) => unknown> = {
+  // `u` est fixé par le serveur
+  journal: ({ d, a, mod, statut }) => ({ d, a, mod, statut }),
+  // id, date et auteur fixés par le serveur
+  diffusions: ({ doc, canal, destinataires, piece }) => ({ doc, canal, destinataires, piece }),
+}
 const SETTINGS_KEYS = ['activeNorms', 'auditorAccess', 'erpModule', 'onboarded'] as const
 /** Collections hors `db` toujours présentes côté serveur. */
 const CORE = ['journal', 'org', 'users', 'settings']
@@ -49,11 +61,17 @@ interface Write {
   coll: string
   /** Élément visé (regroupement des écritures en attente sur un même élément). */
   key?: string
+  /** update() d'origine. */
+  batch?: number
 }
 
-/** URL d'une collection : clé de `db` en kebab-case (analyseVersions -> analyse-versions). */
+/**
+ * URL d'une collection, comme le registre du backend : tiret entre une minuscule
+ * (ou un chiffre) et une majuscule, puis minuscules (analyseVersions -> analyse-versions,
+ * sourcesNC -> sources-nc).
+ */
 export const collectionUrl = (name: string) =>
-  '/' + name.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase()) + '/'
+  '/' + name.replace(/([a-z0-9])(?=[A-Z])/g, '$1-').toLowerCase() + '/'
 
 const hasId = (r: unknown): r is Rec & { id: string } =>
   !!r && typeof r === 'object' && typeof (r as Rec).id === 'string'
@@ -64,48 +82,51 @@ const hasId = (r: unknown): r is Rec & { id: string } =>
 function listWrites(coll: string, base: string, before: unknown, after: Rec[]): Write[] {
   const old = new Map((Array.isArray(before) ? before : []).filter(hasId).map((r) => [r.id, r]))
   const item = (id: string) => base + encodeURIComponent(id) + '/'
-  const out: Write[] = []
+  const key = (id: string) => coll + ':' + id
+  const head: Write[] = [] // nouveaux éléments placés avant tout élément existant (unshift)
+  const rest: Write[] = []
+  let pastHead = old.size === 0 // liste vide avant : ordre conservé par des ajouts en fin
   const seen = new Set<string>()
   for (const r of after) {
+    const o = hasId(r) ? old.get(r.id) : undefined
+    if (o) pastHead = true
     if (!hasId(r)) {
       console.warn(`[sync] élément sans id dans « ${coll} » : création seule, sans suivi.`, r)
-      out.push({ method: 'POST', url: base, body: r, coll })
+      ;(pastHead ? rest : head).push({ method: 'POST', url: base, body: r, coll })
       continue
     }
     seen.add(r.id)
-    const o = old.get(r.id)
     if (o === r) continue
-    const key = coll + ':' + r.id
-    out.push(
-      o
-        ? { method: 'PUT', url: item(r.id), body: r, coll, key }
-        : { method: 'POST', url: base, body: r, coll, key }
-    )
+    if (o) rest.push({ method: 'PUT', url: item(r.id), body: r, coll, key: key(r.id) })
+    else (pastHead ? rest : head).push({ method: 'POST', url: base, body: r, coll, key: key(r.id) })
   }
+  // En tête : du dernier au premier, chacun inséré au début -> ordre final identique.
+  head.reverse().forEach((w) => (w.url += '?at=start'))
   const dels = [...old.keys()].filter((id) => !seen.has(id))
   return [
-    ...dels.map((id): Write => ({ method: 'DELETE', url: item(id), coll, key: coll + ':' + id })),
-    ...out,
+    ...dels.map((id): Write => ({ method: 'DELETE', url: item(id), coll, key: key(id) })),
+    ...head,
+    ...rest,
   ]
 }
 
-/** Journal en ajout seul : entrées nouvelles, de la plus ancienne à la plus récente. */
-function journalWrites(before: unknown[] = [], after: Rec[]): Write[] {
-  const old = new Set(before)
-  return after
-    .filter((e) => !old.has(e))
-    .reverse()
-    .map(({ d, a, mod, statut }) => ({
-      method: 'POST',
-      url: '/journal/',
-      body: { d, a, mod, statut },
-      coll: 'journal',
-    }))
+/** Ajout seul : entrées nouvelles (par référence), de la plus ancienne à la plus récente. */
+function appendWrites(coll: string, before: unknown, after: Rec[]): Write[] {
+  const old = new Set(Array.isArray(before) ? before : [])
+  const fresh = after.filter((e) => !old.has(e))
+  // Entrées ajoutées en tête (unshift) : la plus ancienne est la dernière.
+  const ordered = after.indexOf(fresh[0]) === 0 ? fresh.reverse() : fresh
+  return ordered.map((e) => ({
+    method: 'POST',
+    url: collectionUrl(coll),
+    body: APPEND_ONLY[coll](e),
+    coll,
+  }))
 }
 
 function collectionWrites(name: string, before: unknown, after: unknown): Write[] {
   if (before === after || after === undefined) return []
-  if (name === 'journal') return journalWrites(before as unknown[], after as Rec[])
+  if (name in APPEND_ONLY && Array.isArray(after)) return appendWrites(name, before, after)
   const url = collectionUrl(name)
   const isList = Array.isArray(after) && after.every((r) => !!r && typeof r === 'object')
   if (SINGLETONS.has(name) || !isList)
@@ -113,7 +134,7 @@ function collectionWrites(name: string, before: unknown, after: unknown): Write[
   return listWrites(name, url, before, after as Rec[])
 }
 
-/** Écritures REST correspondant au passage de `prev` à `next`. */
+/** Écritures REST correspondant au passage de `prev` à `next`, dans l’ordre d’envoi. */
 export function writesFor(prev: AppState, next: AppState, patches: Patch[]): Write[] {
   const b = prev.db as unknown as Record<string, unknown>
   const a = next.db as unknown as Record<string, unknown>
@@ -140,7 +161,11 @@ export function writesFor(prev: AppState, next: AppState, patches: Patch[]): Wri
       coll: 'settings',
       key: 'settings',
     })
-  return out
+  // Modifications d'abord (souvent l'action elle-même, ex. transition de statut soumise
+  // à des droits), puis créations (effets liés : NC, registre…), suppressions, journal.
+  const rank = (w: Write) =>
+    w.coll === 'journal' ? 3 : w.method === 'DELETE' ? 2 : w.method === 'POST' ? 1 : 0
+  return out.sort((x, y) => rank(x) - rank(y)) // tri stable : ordre conservé à rang égal
 }
 
 /* ---------- File d'attente ---------- */
@@ -148,6 +173,7 @@ export function writesFor(prev: AppState, next: AppState, patches: Patch[]): Wri
 const queue: Write[] = []
 let running: Promise<void> | null = null
 let reloadNeeded = false
+let batchSeq = 0
 /** Collections connues du serveur (clés de `db` du dernier bootstrap). */
 let known = new Set<string>(CORE)
 /** Collections absentes du serveur déjà signalées (un seul avertissement). */
@@ -197,8 +223,11 @@ function fail(w: Write, e: unknown) {
     return
   }
   toast('Modification refusée par le serveur : ' + err.message, 'warn')
-  // Le serveur et l'écran divergent (conflit, validation, droits) : on recharge.
-  if (err.status < 500) reloadNeeded = true
+  if (err.status >= 500) return
+  // Conflit, validation ou droits (403) : l'action est refusée -> on abandonne le reste
+  // de cet update (effets liés, journal), puis on recharge pour rejoindre le serveur.
+  for (let i = queue.length - 1; i >= 0; i--) if (queue[i].batch === w.batch) queue.splice(i, 1)
+  reloadNeeded = true
 }
 
 async function drain() {
@@ -242,7 +271,8 @@ export function syncedUpdate<S extends AppState>(get: () => S, set: (next: S) =>
     if (!isAuthenticated()) return
     const writes = writesFor(prev, next as S, patches)
     if (!writes.length) return
-    writes.forEach(enqueue)
+    const batch = ++batchSeq
+    writes.forEach((w) => enqueue({ ...w, batch }))
     pump()
   }
 }
