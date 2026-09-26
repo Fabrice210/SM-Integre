@@ -28,7 +28,7 @@ class Modele(OrgModel):
     description = models.TextField(blank=True, help_text="Structure du modèle")
     processus = models.CharField(max_length=32, default="Tous", help_text="Processus (id) ou « Tous »")
     # null (et non "") : champ absent de la démo, donc non émis tant qu'il n'est pas renseigné.
-    fichier = models.CharField(max_length=255, null=True, blank=True, help_text="Fichier du modèle (nom)")  # noqa: DJ001
+    fichier = models.CharField(max_length=255, null=True, blank=True, help_text="Fichier du modèle (nom)")
 
     class Meta(OrgModel.Meta):
         verbose_name = "modèle de document"
@@ -75,9 +75,9 @@ class Document(NormesMixin, OrgModel):
     redacteur = models.CharField(max_length=255, blank=True, help_text="Rédacteur (nom complet)")
     approbateur = models.CharField(max_length=255, blank=True, help_text="Approbateur désigné (nom complet)")
     # refus, accuses, modele : absents de la démo -> null (non émis) tant qu'ils ne sont pas renseignés.
-    refus = models.TextField(null=True, blank=True, help_text="Motif du dernier refus (renvoyé à l'auteur)")  # noqa: DJ001
+    refus = models.TextField(null=True, blank=True, help_text="Motif du dernier refus (renvoyé à l'auteur)")
     accuses = models.PositiveIntegerField(null=True, blank=True, help_text="Accusés de lecture reçus")
-    modele = models.CharField(max_length=255, null=True, blank=True, help_text="Modèle utilisé (nom)")  # noqa: DJ001
+    modele = models.CharField(max_length=255, null=True, blank=True, help_text="Modèle utilisé (nom)")
     fichier = models.FileField(
         upload_to=document_upload_to,
         max_length=500,
