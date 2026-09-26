@@ -1,4 +1,6 @@
 import { routerRef } from '../../app/routerRef'
+import { API_MODE } from '../../services/api'
+import { endSession } from '../../services/session'
 import { logAct, update } from '../../store/useApp'
 import { toast } from '../../store/useOverlays'
 
@@ -10,6 +12,7 @@ export function logout() {
     s.ui.ai = false
     s.ui.notif = false
   })
+  if (API_MODE) void endSession()
   routerRef.navigate?.('/login')
   toast('Vous êtes déconnecté(e).')
 }
