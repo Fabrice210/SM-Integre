@@ -21,7 +21,7 @@ plateforme multi-organismes avec un vrai backend, sans changer l'interface.
 - Collection de référence : `processus`. Tests : auth, CRUD, droits, isolation,
   fidélité.
 
-### Phase 1 — Collections métier (en parallèle, un agent par lot)
+### Phase 1 — Collections métier (fait)
 | Lot | Apps | Collections |
 |---|---|---|
 | A | contexte, leadership | swot, pestel, axes, enjeux, analyseVersions, parties, sites, activites, domaineVersions, applicabilite, planStrat, champsPerso, politique, preuvesCom, accuses, postes, representants, comite, reunions |
@@ -33,14 +33,14 @@ Chaque lot : modèles, sérialiseurs (validation des références), enregistreme
 migrations, admin, tests (fidélité + règles métier), actions de workflow quand le
 front en a (validation GED, soumission au DG, clôture de NC…).
 
-### Phase 1 bis — Intégration front (en parallèle)
+### Phase 1 bis — Intégration front (fait)
 - Client API + connexion JWT réelle (écran de connexion existant).
 - Hydratation du store via `GET /bootstrap/`.
 - Synchronisation des écritures : patches immer du store → POST / PUT / DELETE
   par collection ; journal → `POST /journal/`.
 - Mode local conservé quand `VITE_API_URL` n'est pas défini (tests visuels intacts).
 
-### Phase 1 ter — Industrialisation (en parallèle)
+### Phase 1 ter — Industrialisation (fait)
 - Dockerfile backend, `docker-compose.yml` (PostgreSQL, API, front servi par nginx).
 - CI GitHub Actions : ruff + pytest (PostgreSQL), lint + typecheck + build du front.
 - Documentation de déploiement.

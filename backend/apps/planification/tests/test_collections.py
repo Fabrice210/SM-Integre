@@ -180,7 +180,7 @@ def test_declaration_defaults_and_refs(api):
 
 def test_declaration_decision_reserved_to_dg(api, api_dg):
     r = api.patch("/api/v1/declarations/DC1/", {"statut": "Validée"}, format="json")
-    assert r.status_code == 400 and "statut" in r.json()
+    assert r.status_code == 403
     r = api.patch("/api/v1/declarations/DC1/", {"commentaireDG": "Relancé"}, format="json")
     assert r.status_code == 200 and r.json()["commentaireDG"] == "Relancé"
     r = api_dg.patch("/api/v1/declarations/DC1/", {"statut": "Validée"}, format="json")

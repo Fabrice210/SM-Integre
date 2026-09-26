@@ -87,4 +87,11 @@ demo/demo.json     données de démo exportées du front (node scripts/export-de
    écriture pour les rôles de pilotage ; utilisateurs et paramètres pour
    Responsable SM / Administrateur système ; auditeurs externes selon `auditorAccess`.
 9. **Traçabilité** : chaque écriture API crée un `AuditLog` automatique ; le journal
-   fonctionnel (`/api/v1/journal/`) est en ajout seul.
+   fonctionnel (`/api/v1/journal/`) est en ajout seul. Dans les actions métier, utiliser
+   `apps.core.tracing` (`log_act`, `add_hist`, `now_stamp`, `add_registre`).
+10. **Ordre** : `POST /<url>/?at=start` insère en tête de liste (`unshift()` du front),
+    sinon en fin. Une collection créée à l'usage (absente de la démo) s'enregistre avec
+    `in_demo=False`.
+11. **Synchronisation du front** : le front envoie l'état complet des éléments modifiés
+    (PUT) et son propre journal ; les actions métier de l'API (`/documents/D1/approuver/`…)
+    servent les autres clients et appliquent les mêmes règles de droits.

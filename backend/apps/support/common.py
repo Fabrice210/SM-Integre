@@ -14,30 +14,21 @@ Ils complètent apps.core sans le modifier :
 import datetime as dt
 
 from django.contrib.auth import get_user_model
-from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 
 from apps.core import registry
-from apps.core.models import AuditLog, JournalEntry
+from apps.core.models import AuditLog
 from apps.core.permissions import WRITE_ROLES
 from apps.core.refs import validate_refs
+from apps.core.tracing import add_hist, log_act, now_stamp, today  # noqa: F401 (réexport)
 from apps.core.viewsets import log_write
 
 MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
 
 
 # ---------- Dates ----------
-
-
-def today() -> dt.date:
-    return timezone.localdate()
-
-
-def now_stamp() -> str:
-    """nowStamp() du front : « AAAA-MM-JJ HH:MM » (heure locale)."""
-    return timezone.localtime().strftime("%Y-%m-%d %H:%M")
 
 
 def fd(value) -> str:
@@ -178,20 +169,6 @@ def require_state(obj, allowed, action: str):
 
 def is_writer(user) -> bool:
     return bool(user.is_superuser or user.has_role(*WRITE_ROLES))
-
-
-def add_hist(obj, user, text: str):
-    """hist() du front : entrée en tête de l'historique de l'enregistrement (conservé dans extra)."""
-    extra = dict(obj.extra or {})
-    extra["hist"] = [{"d": now_stamp(), "u": user.nom, "a": text}, *(extra.get("hist") or [])]
-    obj.extra = extra
-
-
-def log_act(user, text: str, mod: str, statut: str = "Terminé"):
-    """logAct() du front : entrée du journal fonctionnel."""
-    JournalEntry.objects.create(
-        organisation=user.organisation, user=user, d=now_stamp(), u=user.nom, a=text, mod=mod, statut=statut
-    )
 
 
 def payload(serializer_class, request) -> dict:

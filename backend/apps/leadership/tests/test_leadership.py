@@ -190,10 +190,8 @@ def test_diffusion(api, api_collab):
     )
     rows = api_collab.get("/api/v1/diffusions/").json()
     assert [x["doc"] for x in rows] == ["Organigramme", "Politique SM v3"]  # plus récente en tête
-    assert JournalEntry.objects.filter(
-        a="a diffusé « Politique SM v3 » (interne — dépôt direct) à Tous les pilotes de processus",
-        mod="Diffusion",
-    ).exists()
+    # le journal fonctionnel est envoyé par le front (POST /journal/), pas par cette vue
+    assert not JournalEntry.objects.filter(mod="Diffusion").exists()
     assert (
         api_collab.post(
             "/api/v1/diffusions/", {"doc": "X", "canal": "interne", "destinataires": "Y"}, format="json"

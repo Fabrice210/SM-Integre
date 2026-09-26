@@ -8,24 +8,15 @@ création d'éléments liés dans des collections d'autres modules (NC, registre
 import datetime
 
 from django.db.models import F
-from django.utils import timezone
 
-from apps.core import registry
-from apps.core.models import AuditLog, JournalEntry
+from apps.core import registry, tracing
+from apps.core.models import AuditLog
 from apps.core.refs import validate_refs
+from apps.core.tracing import add_hist, now_stamp, today  # noqa: F401 (réexport)
 from apps.core.viewsets import log_write
 
 # src/data/referentiels.ts : MOIS
 MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
-
-
-def today() -> datetime.date:
-    return timezone.localdate()
-
-
-def now_stamp() -> str:
-    """nowStamp() du front : « AAAA-MM-JJ HH:MM »."""
-    return timezone.localtime().strftime("%Y-%m-%d %H:%M")
 
 
 def fd(d: datetime.date) -> str:
@@ -51,19 +42,9 @@ def validate_optional_refs(serializer, collection: str, value):
     return validate_refs(serializer, collection, value)
 
 
-def add_hist(obj, user, action: str) -> None:
-    """hist() du front : entrée en tête de `hist` (conservé dans `extra`)."""
-    extra = dict(obj.extra or {})
-    extra["hist"] = [{"d": now_stamp(), "u": user.nom, "a": action}, *(extra.get("hist") or [])]
-    obj.extra = extra
-
-
 def log_act(request, action: str, mod: str, statut: str = "Terminé") -> None:
-    """logAct() du front : entrée du journal d'audit fonctionnel."""
-    user = request.user
-    JournalEntry.objects.create(
-        organisation=user.organisation, user=user, d=now_stamp(), u=user.nom, a=action, mod=mod, statut=statut
-    )
+    """logAct() du front (apps.core.tracing), à partir de la requête."""
+    tracing.log_act(request.user, action, mod, statut)
 
 
 def niveau(rec: dict) -> int:
@@ -140,24 +121,7 @@ def count_of(collection: str, org) -> int:
 
 
 def add_registre(request, type_: str, intitule: str, origine: str, processus: str, normes, responsable: str):
-    """addRegistre() du front (src/services/registre.ts) : entrée du registre d'amélioration."""
-    if not is_registered("registre"):
-        return None
-    org = request.user.organisation
-    d = today()
-    return create_linked(
-        request,
-        "registre",
-        {
-            "id": org.next_uid("RG"),
-            "ref": f"RG-{d.year}-0{38 + count_of('registre', org)}",
-            "type": type_,
-            "intitule": intitule,
-            "origine": origine,
-            "processus": processus,
-            "normes": list(normes or []),
-            "statut": "En cours",
-            "date": d.isoformat(),
-            "responsable": responsable,
-        },
+    """addRegistre() du front : apps.core.tracing.add_registre, tracé dans l'AuditLog."""
+    return tracing.add_registre(
+        request.user.organisation, type_, intitule, origine, processus, normes, responsable, request=request
     )

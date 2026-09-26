@@ -23,17 +23,16 @@ from types import SimpleNamespace
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import F
 from django.http import FileResponse
 from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.parsers import FormParser, MultiPartParser
 
-from apps.core import registry
-from apps.core.models import AuditLog, Role
+from apps.core import registry, tracing
+from apps.core.models import Role
 from apps.core.permissions import ADMIN_ROLES, IsMemberAnyMethod
-from apps.core.viewsets import OrgModelViewSet, log_write
+from apps.core.viewsets import OrgModelViewSet
 from apps.support.common import (
     ActionMixin,
     fd,
@@ -337,30 +336,10 @@ class CompteRenduInput(serializers.Serializer):
 
 
 def add_registre(request, type_, intitule, origine, processus, normes, responsable):
-    """addRegistre() du front (services/registre.ts), si la collection `registre` est disponible."""
-    if not is_registered("registre"):
-        return None
-    col = registry.get("registre")
-    org = request.user.organisation
-    qs = col.model.objects.filter(organisation=org)
-    data = {
-        "id": org.next_uid("RG"),
-        "ref": f"RG-2026-0{38 + qs.count()}",
-        "type": type_,
-        "intitule": intitule,
-        "origine": origine,
-        "processus": processus,
-        "normes": normes,
-        "statut": "En cours",
-        "date": today().isoformat(),
-        "responsable": responsable,
-    }
-    ser = col.serializer(data=data, context={"organisation": org, "request": request})
-    ser.is_valid(raise_exception=True)
-    qs.update(position=F("position") + 1)  # unshift : en tête du registre
-    obj = ser.save(position=0)
-    log_write(request, col.name, AuditLog.Action.CREATE, obj.uid, ser.data)
-    return ser.data
+    """addRegistre() du front : apps.core.tracing.add_registre, tracé dans l'AuditLog."""
+    return tracing.add_registre(
+        request.user.organisation, type_, intitule, origine, processus, normes, responsable, request=request
+    )
 
 
 class UrgenceViewSet(ActionMixin, OrgModelViewSet):

@@ -1,6 +1,6 @@
 import datetime
 
-from rest_framework import serializers
+from rest_framework import exceptions, serializers
 
 from apps.core.models import Role
 from apps.core.serializers import OrgModelSerializer
@@ -134,8 +134,8 @@ class DeclarationSerializer(OrgModelSerializer):
         changed = self.instance is None or statut != self.instance.statut
         if statut in decided and changed and user is not None:
             if not (user.is_superuser or user.has_role(Role.DIRIGEANT)):
-                raise serializers.ValidationError(
-                    {"statut": "Seul le Directeur Général (rôle Dirigeant) peut valider ou refuser."}
+                raise exceptions.PermissionDenied(
+                    "Seul le Directeur Général (rôle Dirigeant) peut valider ou refuser."
                 )
         return attrs
 

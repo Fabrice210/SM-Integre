@@ -215,12 +215,8 @@ class DiffusionViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.
         )
         data = DiffusionSerializer(obj, context=self.get_serializer_context()).data
         log_write(request, "diffusions", AuditLog.Action.CREATE, obj.uid, data)
-        mode = (
-            "interne — dépôt direct"
-            if obj.canal == m.Diffusion.Canal.INTERNE
-            else "externe — email + pièce jointe"
-        )
-        log_act(user, f"a diffusé « {obj.doc} » ({mode}) à {obj.destinataires}", "Diffusion")
+        # Pas d'entrée au journal fonctionnel ici : le front l'envoie lui-même
+        # (POST /journal/) dans la même mise à jour que la diffusion.
         return Response(data, status=status.HTTP_201_CREATED)
 
 
