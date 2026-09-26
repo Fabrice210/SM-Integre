@@ -85,8 +85,16 @@ class OrgModelSerializer(CamelSerializerMixin, serializers.ModelSerializer):
         if not validated_data.get("uid"):
             validated_data["uid"] = org.next_uid(model.UID_PREFIX)
         if "position" not in validated_data:
-            last = model.objects.filter(organisation=org).order_by("-position").first()
-            validated_data["position"] = (last.position + 1) if last else 0
+            # ?at=start : en tête de liste (unshift() du front), sinon en fin (push()).
+            request = self.context.get("request")
+            at_start = request is not None and request.query_params.get("at") == "start"
+            qs = model.objects.filter(organisation=org)
+            if at_start:
+                first = qs.order_by("position").first()
+                validated_data["position"] = (first.position - 1) if first else 0
+            else:
+                last = qs.order_by("-position").first()
+                validated_data["position"] = (last.position + 1) if last else 0
         return super().create(validated_data)
 
     def update(self, instance, validated_data):

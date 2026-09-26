@@ -1,0 +1,1267 @@
+{
+ "9001": {
+  "cov": 95,
+  "acts": 3,
+  "late": 1,
+  "txOk": 100,
+  "txEcarts": 0,
+  "stats": {
+   "risquesOuverts": 1,
+   "oppEnCours": 2,
+   "roClos": 2,
+   "roTot": 5,
+   "roMEO": 40,
+   "tOk": 1,
+   "tDiff": 1,
+   "tWait": 0,
+   "tTot": 1,
+   "camp": {
+    "plan": 2,
+    "diff": 0,
+    "dep": 0,
+    "clos": 1
+   },
+   "regRate": 50,
+   "regClos": 1,
+   "regTot": 2,
+   "ncCat": {
+    "Non-conformité": 1,
+    "Accident / incident": 0,
+    "Piste d'amélioration": 0,
+    "Observation": 1
+   },
+   "ncDecl": 1,
+   "ncCours": 0,
+   "ncClos": 1,
+   "dWait": 5,
+   "dDiff": 3,
+   "dTot": 6,
+   "dRate": 50
+  },
+  "proc": [
+   {
+    "id": "P01",
+    "proc": "P01 · Management stratégique",
+    "dir": "Direction Générale",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P02",
+    "proc": "P02 · Management du SM intégré",
+    "dir": "Direction QSE-SI",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P03",
+    "proc": "P03 · Achats & approvisionnement",
+    "dir": "Direction Achats & Logistique",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 1,
+    "risk": 1
+   },
+   {
+    "id": "P04",
+    "proc": "P04 · Réception & stockage des matières premières",
+    "dir": "Direction Industrielle",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P05",
+    "proc": "P05 · Transformation & conditionnement",
+    "dir": "Direction Industrielle",
+    "obj": 1,
+    "atteints": 0,
+    "risque": 1,
+    "act": 2,
+    "risk": 0
+   },
+   {
+    "id": "P06",
+    "proc": "P06 · Commercialisation & export",
+    "dir": "Direction Commerciale",
+    "obj": 1,
+    "atteints": 0,
+    "risque": 1,
+    "act": 2,
+    "risk": 0
+   },
+   {
+    "id": "P07",
+    "proc": "P07 · Logistique & expédition",
+    "dir": "Direction Achats & Logistique",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P08",
+    "proc": "P08 · Ressources humaines",
+    "dir": "Direction des Ressources Humaines",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P09",
+    "proc": "P09 · Maintenance & infrastructures",
+    "dir": "Direction Industrielle",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P10",
+    "proc": "P10 · Systèmes d'information",
+    "dir": "Direction des Systèmes d'Information",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P12",
+    "proc": "P12 · Finance & comptabilité",
+    "dir": "Direction Administrative & Financière",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   }
+  ]
+ },
+ "14001": {
+  "cov": 64,
+  "acts": 4,
+  "late": 0,
+  "txOk": 67,
+  "txEcarts": 1,
+  "stats": {
+   "risquesOuverts": 2,
+   "oppEnCours": 1,
+   "roClos": 0,
+   "roTot": 3,
+   "roMEO": 0,
+   "tOk": 2,
+   "tDiff": 2,
+   "tWait": 1,
+   "tTot": 3,
+   "camp": {
+    "plan": 1,
+    "diff": 1,
+    "dep": 0,
+    "clos": 1
+   },
+   "regRate": 50,
+   "regClos": 1,
+   "regTot": 2,
+   "ncCat": {
+    "Non-conformité": 1,
+    "Accident / incident": 0,
+    "Piste d'amélioration": 1,
+    "Observation": 0
+   },
+   "ncDecl": 0,
+   "ncCours": 2,
+   "ncClos": 0,
+   "dWait": 5,
+   "dDiff": 3,
+   "dTot": 6,
+   "dRate": 50
+  },
+  "proc": [
+   {
+    "id": "P01",
+    "proc": "P01 · Management stratégique",
+    "dir": "Direction Générale",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P02",
+    "proc": "P02 · Management du SM intégré",
+    "dir": "Direction QSE-SI",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P03",
+    "proc": "P03 · Achats & approvisionnement",
+    "dir": "Direction Achats & Logistique",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P04",
+    "proc": "P04 · Réception & stockage des matières premières",
+    "dir": "Direction Industrielle",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P05",
+    "proc": "P05 · Transformation & conditionnement",
+    "dir": "Direction Industrielle",
+    "obj": 1,
+    "atteints": 0,
+    "risque": 0,
+    "act": 3,
+    "risk": 1
+   },
+   {
+    "id": "P07",
+    "proc": "P07 · Logistique & expédition",
+    "dir": "Direction Achats & Logistique",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P09",
+    "proc": "P09 · Maintenance & infrastructures",
+    "dir": "Direction Industrielle",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 1,
+    "risk": 1
+   },
+   {
+    "id": "P11",
+    "proc": "P11 · Hygiène, sécurité & environnement",
+    "dir": "Direction QSE-SI",
+    "obj": 1,
+    "atteints": 0,
+    "risque": 0,
+    "act": 3,
+    "risk": 1
+   }
+  ]
+ },
+ "27001": {
+  "cov": 63,
+  "acts": 2,
+  "late": 2,
+  "txOk": 0,
+  "txEcarts": 1,
+  "stats": {
+   "risquesOuverts": 1,
+   "oppEnCours": 1,
+   "roClos": 0,
+   "roTot": 2,
+   "roMEO": 0,
+   "tOk": 0,
+   "tDiff": 0,
+   "tWait": 1,
+   "tTot": 1,
+   "camp": {
+    "plan": 1,
+    "diff": 0,
+    "dep": 1,
+    "clos": 0
+   },
+   "regRate": 50,
+   "regClos": 1,
+   "regTot": 2,
+   "ncCat": {
+    "Non-conformité": 1,
+    "Accident / incident": 0,
+    "Piste d'amélioration": 0,
+    "Observation": 0
+   },
+   "ncDecl": 1,
+   "ncCours": 0,
+   "ncClos": 0,
+   "dWait": 5,
+   "dDiff": 3,
+   "dTot": 6,
+   "dRate": 50
+  },
+  "proc": [
+   {
+    "id": "P01",
+    "proc": "P01 · Management stratégique",
+    "dir": "Direction Générale",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P02",
+    "proc": "P02 · Management du SM intégré",
+    "dir": "Direction QSE-SI",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P03",
+    "proc": "P03 · Achats & approvisionnement",
+    "dir": "Direction Achats & Logistique",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P06",
+    "proc": "P06 · Commercialisation & export",
+    "dir": "Direction Commerciale",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P08",
+    "proc": "P08 · Ressources humaines",
+    "dir": "Direction des Ressources Humaines",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P10",
+    "proc": "P10 · Systèmes d'information",
+    "dir": "Direction des Systèmes d'Information",
+    "obj": 1,
+    "atteints": 0,
+    "risque": 1,
+    "act": 2,
+    "risk": 1
+   },
+   {
+    "id": "P12",
+    "proc": "P12 · Finance & comptabilité",
+    "dir": "Direction Administrative & Financière",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   }
+  ]
+ },
+ "45001": {
+  "cov": 80,
+  "acts": 5,
+  "late": 1,
+  "txOk": 100,
+  "txEcarts": 0,
+  "stats": {
+   "risquesOuverts": 3,
+   "oppEnCours": 0,
+   "roClos": 0,
+   "roTot": 3,
+   "roMEO": 0,
+   "tOk": 2,
+   "tDiff": 2,
+   "tWait": 0,
+   "tTot": 2,
+   "camp": {
+    "plan": 2,
+    "diff": 0,
+    "dep": 0,
+    "clos": 1
+   },
+   "regRate": 50,
+   "regClos": 1,
+   "regTot": 2,
+   "ncCat": {
+    "Non-conformité": 1,
+    "Accident / incident": 1,
+    "Piste d'amélioration": 0,
+    "Observation": 0
+   },
+   "ncDecl": 0,
+   "ncCours": 1,
+   "ncClos": 1,
+   "dWait": 5,
+   "dDiff": 3,
+   "dTot": 6,
+   "dRate": 50
+  },
+  "proc": [
+   {
+    "id": "P01",
+    "proc": "P01 · Management stratégique",
+    "dir": "Direction Générale",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P02",
+    "proc": "P02 · Management du SM intégré",
+    "dir": "Direction QSE-SI",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P04",
+    "proc": "P04 · Réception & stockage des matières premières",
+    "dir": "Direction Industrielle",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P05",
+    "proc": "P05 · Transformation & conditionnement",
+    "dir": "Direction Industrielle",
+    "obj": 1,
+    "atteints": 0,
+    "risque": 1,
+    "act": 4,
+    "risk": 2
+   },
+   {
+    "id": "P08",
+    "proc": "P08 · Ressources humaines",
+    "dir": "Direction des Ressources Humaines",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P09",
+    "proc": "P09 · Maintenance & infrastructures",
+    "dir": "Direction Industrielle",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 1,
+    "risk": 1
+   },
+   {
+    "id": "P11",
+    "proc": "P11 · Hygiène, sécurité & environnement",
+    "dir": "Direction QSE-SI",
+    "obj": 1,
+    "atteints": 0,
+    "risque": 1,
+    "act": 3,
+    "risk": 1
+   }
+  ]
+ },
+ "all": {
+  "cov": 81,
+  "acts": 12,
+  "late": 4,
+  "txOk": 67,
+  "txEcarts": 2,
+  "stats": {
+   "risquesOuverts": 5,
+   "oppEnCours": 3,
+   "roClos": 2,
+   "roTot": 10,
+   "roMEO": 20,
+   "tOk": 4,
+   "tDiff": 4,
+   "tWait": 2,
+   "tTot": 6,
+   "camp": {
+    "plan": 2,
+    "diff": 1,
+    "dep": 1,
+    "clos": 2
+   },
+   "regRate": 50,
+   "regClos": 1,
+   "regTot": 2,
+   "ncCat": {
+    "Non-conformité": 4,
+    "Accident / incident": 1,
+    "Piste d'amélioration": 1,
+    "Observation": 1
+   },
+   "ncDecl": 2,
+   "ncCours": 3,
+   "ncClos": 2,
+   "dWait": 5,
+   "dDiff": 3,
+   "dTot": 6,
+   "dRate": 50
+  },
+  "proc": [
+   {
+    "id": "P01",
+    "proc": "P01 · Management stratégique",
+    "dir": "Direction Générale",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P02",
+    "proc": "P02 · Management du SM intégré",
+    "dir": "Direction QSE-SI",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P03",
+    "proc": "P03 · Achats & approvisionnement",
+    "dir": "Direction Achats & Logistique",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 1,
+    "risk": 1
+   },
+   {
+    "id": "P04",
+    "proc": "P04 · Réception & stockage des matières premières",
+    "dir": "Direction Industrielle",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P05",
+    "proc": "P05 · Transformation & conditionnement",
+    "dir": "Direction Industrielle",
+    "obj": 3,
+    "atteints": 0,
+    "risque": 2,
+    "act": 8,
+    "risk": 2
+   },
+   {
+    "id": "P06",
+    "proc": "P06 · Commercialisation & export",
+    "dir": "Direction Commerciale",
+    "obj": 1,
+    "atteints": 0,
+    "risque": 1,
+    "act": 2,
+    "risk": 0
+   },
+   {
+    "id": "P07",
+    "proc": "P07 · Logistique & expédition",
+    "dir": "Direction Achats & Logistique",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P08",
+    "proc": "P08 · Ressources humaines",
+    "dir": "Direction des Ressources Humaines",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P09",
+    "proc": "P09 · Maintenance & infrastructures",
+    "dir": "Direction Industrielle",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 1,
+    "risk": 1
+   },
+   {
+    "id": "P10",
+    "proc": "P10 · Systèmes d'information",
+    "dir": "Direction des Systèmes d'Information",
+    "obj": 1,
+    "atteints": 0,
+    "risque": 1,
+    "act": 2,
+    "risk": 1
+   },
+   {
+    "id": "P11",
+    "proc": "P11 · Hygiène, sécurité & environnement",
+    "dir": "Direction QSE-SI",
+    "obj": 2,
+    "atteints": 0,
+    "risque": 1,
+    "act": 5,
+    "risk": 1
+   },
+   {
+    "id": "P12",
+    "proc": "P12 · Finance & comptabilité",
+    "dir": "Direction Administrative & Financière",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   }
+  ]
+ },
+ "cross": {
+  "cov": 81,
+  "acts": 12,
+  "late": 4,
+  "txOk": 67,
+  "txEcarts": 2,
+  "stats": {
+   "risquesOuverts": 5,
+   "oppEnCours": 3,
+   "roClos": 2,
+   "roTot": 10,
+   "roMEO": 20,
+   "tOk": 4,
+   "tDiff": 4,
+   "tWait": 2,
+   "tTot": 6,
+   "camp": {
+    "plan": 2,
+    "diff": 1,
+    "dep": 1,
+    "clos": 2
+   },
+   "regRate": 50,
+   "regClos": 1,
+   "regTot": 2,
+   "ncCat": {
+    "Non-conformité": 4,
+    "Accident / incident": 1,
+    "Piste d'amélioration": 1,
+    "Observation": 1
+   },
+   "ncDecl": 2,
+   "ncCours": 3,
+   "ncClos": 2,
+   "dWait": 5,
+   "dDiff": 3,
+   "dTot": 6,
+   "dRate": 50
+  },
+  "proc": [
+   {
+    "id": "P01",
+    "proc": "P01 · Management stratégique",
+    "dir": "Direction Générale",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P02",
+    "proc": "P02 · Management du SM intégré",
+    "dir": "Direction QSE-SI",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P03",
+    "proc": "P03 · Achats & approvisionnement",
+    "dir": "Direction Achats & Logistique",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 1,
+    "risk": 1
+   },
+   {
+    "id": "P04",
+    "proc": "P04 · Réception & stockage des matières premières",
+    "dir": "Direction Industrielle",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P05",
+    "proc": "P05 · Transformation & conditionnement",
+    "dir": "Direction Industrielle",
+    "obj": 3,
+    "atteints": 0,
+    "risque": 2,
+    "act": 8,
+    "risk": 2
+   },
+   {
+    "id": "P06",
+    "proc": "P06 · Commercialisation & export",
+    "dir": "Direction Commerciale",
+    "obj": 1,
+    "atteints": 0,
+    "risque": 1,
+    "act": 2,
+    "risk": 0
+   },
+   {
+    "id": "P07",
+    "proc": "P07 · Logistique & expédition",
+    "dir": "Direction Achats & Logistique",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P08",
+    "proc": "P08 · Ressources humaines",
+    "dir": "Direction des Ressources Humaines",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   },
+   {
+    "id": "P09",
+    "proc": "P09 · Maintenance & infrastructures",
+    "dir": "Direction Industrielle",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 1,
+    "risk": 1
+   },
+   {
+    "id": "P10",
+    "proc": "P10 · Systèmes d'information",
+    "dir": "Direction des Systèmes d'Information",
+    "obj": 1,
+    "atteints": 0,
+    "risque": 1,
+    "act": 2,
+    "risk": 1
+   },
+   {
+    "id": "P11",
+    "proc": "P11 · Hygiène, sécurité & environnement",
+    "dir": "Direction QSE-SI",
+    "obj": 2,
+    "atteints": 0,
+    "risque": 1,
+    "act": 5,
+    "risk": 1
+   },
+   {
+    "id": "P12",
+    "proc": "P12 · Finance & comptabilité",
+    "dir": "Direction Administrative & Financière",
+    "obj": 0,
+    "atteints": 0,
+    "risque": 0,
+    "act": 0,
+    "risk": 0
+   }
+  ]
+ },
+ "matrix": {
+  "45001": [
+   [
+    4,
+    3,
+    1,
+    0
+   ],
+   [
+    2,
+    3,
+    1,
+    0
+   ],
+   [
+    2,
+    4,
+    1,
+    0
+   ]
+  ],
+  "all": [
+   [
+    4,
+    3,
+    1,
+    0
+   ],
+   [
+    3,
+    2,
+    1,
+    0
+   ],
+   [
+    3,
+    3,
+    1,
+    1
+   ],
+   [
+    3,
+    4,
+    1,
+    1
+   ],
+   [
+    2,
+    3,
+    1,
+    1
+   ],
+   [
+    2,
+    4,
+    2,
+    0
+   ]
+  ]
+ },
+ "covByNorm": {
+  "9001": 95,
+  "14001": 64,
+  "27001": 63,
+  "45001": 80
+ },
+ "alerts": [
+  {
+   "lvl": "red",
+   "t": "Action en retard — OB-01",
+   "d": "Former les opérateurs au calibrage W240 (Serge KOUTON) — échéance 15 sept. 2026",
+   "page": "m3-objectifs",
+   "resp": "Serge KOUTON",
+   "key": "Action en retard — OB-01"
+  },
+  {
+   "lvl": "red",
+   "t": "Action en retard — OB-02",
+   "d": "Installer des carters sur les décortiqueuses (Bertin SOSSA) — échéance 31 juil. 2026",
+   "page": "m3-objectifs",
+   "resp": "Bertin SOSSA",
+   "key": "Action en retard — OB-02"
+  },
+  {
+   "lvl": "red",
+   "t": "Action en retard — OB-04",
+   "d": "Tester la restauration de l'ERP (Cédric AGBODJAN) — échéance 10 sept. 2026",
+   "page": "m3-objectifs",
+   "resp": "Cédric AGBODJAN",
+   "key": "Action en retard — OB-04"
+  },
+  {
+   "lvl": "red",
+   "t": "Traitement du risque R03 en retard",
+   "d": "Sauvegardes externalisées et tests de restauration — Cédric AGBODJAN",
+   "page": "m3-risques",
+   "resp": "Cédric AGBODJAN",
+   "key": "Traitement du risque R03 en retard"
+  },
+  {
+   "lvl": "amber",
+   "t": "Mandat arrivant à échéance (Représentant)",
+   "d": "Jules HOUESSOU — fin le 15 oct. 2026 (J-24)",
+   "page": "m2-consultation",
+   "resp": "Gildas HOUNKPATIN",
+   "key": "Mandat arrivant à échéance (Représentant)"
+  },
+  {
+   "lvl": "amber",
+   "t": "Mandat arrivant à échéance (Représentant)",
+   "d": "Estelle KPADONOU — fin le 15 oct. 2026 (J-24)",
+   "page": "m2-consultation",
+   "resp": "Gildas HOUNKPATIN",
+   "key": "Mandat arrivant à échéance (Représentant)"
+  },
+  {
+   "lvl": "amber",
+   "t": "Mandat arrivant à échéance (Comité HS)",
+   "d": "Jules HOUESSOU — fin le 15 oct. 2026 (J-24)",
+   "page": "m2-consultation",
+   "resp": "Gildas HOUNKPATIN",
+   "key": "Mandat arrivant à échéance (Comité HS)"
+  },
+  {
+   "lvl": "amber",
+   "t": "Texte réglementaire non conforme",
+   "d": "Loi n°2017-20 du 20 avril 2018 portant Code du numérique… — J-9",
+   "page": "m3-veille",
+   "resp": "Cédric AGBODJAN",
+   "key": "Texte réglementaire non conforme"
+  },
+  {
+   "lvl": "red",
+   "t": "Texte réglementaire non conforme",
+   "d": "Décret n°2003-332 du 27 août 2003 portant gestion des déchets solides… — délai dépassé",
+   "page": "m3-veille",
+   "resp": "Arnaud TCHIBOZO",
+   "key": "Texte réglementaire non conforme"
+  },
+  {
+   "lvl": "blue",
+   "t": "Déclaration en attente de validation du DG",
+   "d": "Non-déclaration des traitements de données RH à l'APDP",
+   "page": "m3-veille",
+   "resp": "Rodrigue AHOUANSOU",
+   "key": "Déclaration en attente de validation du DG"
+  },
+  {
+   "lvl": "red",
+   "t": "Retard de mise à disposition",
+   "d": "Technicien sécurité informatique (CDI) — demandée pour le 1 août 2026",
+   "page": "m4-ressources",
+   "resp": "Cédric AGBODJAN",
+   "key": "Retard de mise à disposition"
+  },
+  {
+   "lvl": "red",
+   "t": "Retard de mise à disposition",
+   "d": "Bacs de rétention chimiques (x6) — demandée pour le 10 sept. 2026",
+   "page": "m4-ressources",
+   "resp": "Bertin SOSSA",
+   "key": "Retard de mise à disposition"
+  },
+  {
+   "lvl": "amber",
+   "t": "Revue documentaire proche",
+   "d": "PR-QSE-01 Maîtrise des informations documentées — 10 oct. 2026",
+   "page": "m5-ged",
+   "resp": "Florence DOSSOU-YOVO",
+   "key": "Revue documentaire proche"
+  },
+  {
+   "lvl": "amber",
+   "t": "Revue documentaire proche",
+   "d": "PO-SM-01 Politique du système de management intégré — 2 oct. 2026",
+   "page": "m5-ged",
+   "resp": "Rodrigue AHOUANSOU",
+   "key": "Revue documentaire proche"
+  },
+  {
+   "lvl": "red",
+   "t": "Exercice d'urgence non réalisé",
+   "d": "Déversement de produits chimiques — prévu le 10 juin 2026",
+   "page": "m5-urgences",
+   "resp": "Arnaud TCHIBOZO",
+   "key": "Exercice d'urgence non réalisé"
+  },
+  {
+   "lvl": "amber",
+   "t": "Mise à jour de fiche de maîtrise",
+   "d": "Décorticage des noix de cajou — J-11",
+   "page": "m3-fiches",
+   "resp": "Serge KOUTON",
+   "key": "Mise à jour de fiche de maîtrise"
+  },
+  {
+   "lvl": "red",
+   "t": "Mise à jour de fiche de maîtrise",
+   "d": "Stockage et manipulation des produits chimiques — échue depuis 11 j",
+   "page": "m3-fiches",
+   "resp": "Bertin SOSSA",
+   "key": "Mise à jour de fiche de maîtrise"
+  },
+  {
+   "lvl": "amber",
+   "t": "Écart significatif sur un indicateur",
+   "d": "Taux de fréquence TF1 : 11.2 pour une cible de 8 (taux 71 %)",
+   "page": "m6-surveillance",
+   "resp": "Arnaud TCHIBOZO",
+   "key": "Écart significatif sur un indicateur"
+  },
+  {
+   "lvl": "amber",
+   "t": "Écart significatif sur un indicateur",
+   "d": "Taux de valorisation des coques : 60% pour une cible de 85% (taux 71 %)",
+   "page": "m6-surveillance",
+   "resp": "Arnaud TCHIBOZO",
+   "key": "Écart significatif sur un indicateur"
+  },
+  {
+   "lvl": "amber",
+   "t": "Écart significatif sur un indicateur",
+   "d": "Systèmes critiques sauvegardés hors site : 75% pour une cible de 100% (taux 75 %)",
+   "page": "m6-surveillance",
+   "resp": "Cédric AGBODJAN",
+   "key": "Écart significatif sur un indicateur"
+  },
+  {
+   "lvl": "blue",
+   "t": "Audit à venir — auditeur alerté",
+   "d": "AUD-2026-04 Audit environnement — déchets et produits chimiques — 14 oct. 2026 (Cabinet QUALIS Afrique)",
+   "page": "m6-audits",
+   "resp": "Cabinet QUALIS Afrique",
+   "key": "Audit à venir — auditeur alerté"
+  },
+  {
+   "lvl": "blue",
+   "t": "Audit à venir — auditeur alerté",
+   "d": "AUD-2026-05 Audit processus Réception & stockage — 18 nov. 2026 (Arnaud TCHIBOZO)",
+   "page": "m6-audits",
+   "resp": "Arnaud TCHIBOZO",
+   "key": "Audit à venir — auditeur alerté"
+  },
+  {
+   "lvl": "amber",
+   "t": "Compétence critique non couverte",
+   "d": "Conduite de chariot élévateur — 1 collaborateur(s) sous le niveau requis",
+   "page": "m4-competences",
+   "resp": "Gildas HOUNKPATIN",
+   "key": "Compétence critique non couverte"
+  },
+  {
+   "lvl": "blue",
+   "t": "Non-conformité à valider",
+   "d": "NC-2026-023 — Lot W320 n°2026-188 avec 4 % de brisures (tolérance 2 %)",
+   "page": "m6-nc",
+   "resp": "Serge KOUTON",
+   "key": "Non-conformité à valider"
+  },
+  {
+   "lvl": "blue",
+   "t": "Non-conformité à valider",
+   "d": "NC-2026-024 — Test de restauration de l'ERP non réalisé depuis 14 mois",
+   "page": "m6-nc",
+   "resp": "Cédric AGBODJAN",
+   "key": "Non-conformité à valider"
+  }
+ ],
+ "pending": [
+  {
+   "t": "PR-ACH-02 — Évaluation des fournisseurs et prestataires",
+   "d": "Document en approbation",
+   "page": "m5-ged",
+   "detail": {
+    "fn": "docDetail",
+    "id": "D2"
+   }
+  },
+  {
+   "t": "IT-PRO-07 — Réglage et sécurité des décortiqueuses",
+   "d": "Document en vérification",
+   "page": "m5-ged",
+   "detail": {
+    "fn": "docDetail",
+    "id": "D3"
+   }
+  },
+  {
+   "t": "Non-déclaration des traitements de données RH à l'APDP",
+   "d": "Déclaration à valider par le Directeur Général",
+   "page": "m3-veille",
+   "detail": {
+    "fn": "declDetail",
+    "id": "DC1"
+   }
+  },
+  {
+   "t": "NC-2026-023 — Lot W320 n°2026-188 avec 4 % de brisures (tolérance 2 %)",
+   "d": "Validation par le pilote",
+   "page": "m6-nc",
+   "detail": {
+    "fn": "ncDetail",
+    "id": "NC4"
+   }
+  },
+  {
+   "t": "AM-2026-006 — Mettre un code couleur sur les bacs de tri des déchets",
+   "d": "Approbation par le responsable du système",
+   "page": "m6-nc",
+   "detail": {
+    "fn": "ncDetail",
+    "id": "NC5"
+   }
+  },
+  {
+   "t": "NC-2026-024 — Test de restauration de l'ERP non réalisé depuis 14 mois",
+   "d": "Validation par le pilote",
+   "page": "m6-nc",
+   "detail": {
+    "fn": "ncDetail",
+    "id": "NC6"
+   }
+  },
+  {
+   "t": "Chaudière biomasse 500 kW",
+   "d": "Demande de ressource — circuit Finance",
+   "page": "m4-ressources",
+   "detail": {
+    "fn": "resDetail",
+    "id": "RS1"
+   }
+  }
+ ],
+ "upcoming": [
+  {
+   "t": "Déploiement des correctifs de sécurité sur 45 postes",
+   "d": "2026-09-25",
+   "m": "Planification opérationnelle",
+   "r": "Cédric AGBODJAN"
+  },
+  {
+   "t": "Formation : Gestes sûrs au décorticage",
+   "d": "2026-09-28",
+   "m": "Compétences",
+   "r": "Arnaud TCHIBOZO"
+  },
+  {
+   "t": "Former 100 % des opérateurs aux gestes sûrs",
+   "d": "2026-09-30",
+   "m": "Plan d'action OB-02",
+   "r": "Gildas HOUNKPATIN"
+  },
+  {
+   "t": "Évaluation : Loi n°2017-20 du 20 avril 2018 portant Code du num…",
+   "d": "2026-09-30",
+   "m": "Veille réglementaire",
+   "r": "Cédric AGBODJAN"
+  },
+  {
+   "t": "Mise à jour : Décorticage des noix de cajou",
+   "d": "2026-10-02",
+   "m": "Fiche de maîtrise",
+   "r": "Serge KOUTON"
+  },
+  {
+   "t": "Revue PO-SM-01",
+   "d": "2026-10-02",
+   "m": "GED",
+   "r": "Rodrigue AHOUANSOU"
+  },
+  {
+   "t": "Revue PR-QSE-01",
+   "d": "2026-10-10",
+   "m": "GED",
+   "r": "Florence DOSSOU-YOVO"
+  },
+  {
+   "t": "Formation : Auditeur interne ISO 45001 et 14001",
+   "d": "2026-10-12",
+   "m": "Compétences",
+   "r": "Cabinet QUALIS Afrique"
+  },
+  {
+   "t": "Audit environnement — déchets et produits chimiques",
+   "d": "2026-10-14",
+   "m": "Audit AUD-2026-04",
+   "r": "Cabinet QUALIS Afrique"
+  },
+  {
+   "t": "Mise en place de la rotation des postes au conditionnement",
+   "d": "2026-10-15",
+   "m": "Planification opérationnelle",
+   "r": "Serge KOUTON"
+  },
+  {
+   "t": "Fin de mandat : Jules HOUESSOU",
+   "d": "2026-10-15",
+   "m": "Consultation",
+   "r": "Opérateur décorticage — délégué titulaire"
+  },
+  {
+   "t": "Fin de mandat : Estelle KPADONOU",
+   "d": "2026-10-15",
+   "m": "Consultation",
+   "r": "Agent de conditionnement — déléguée titulaire"
+  },
+  {
+   "t": "Exercice : Incendie dans le magasin de coques",
+   "d": "2026-10-20",
+   "m": "Situations d'urgence",
+   "r": "Arnaud TCHIBOZO"
+  }
+ ],
+ "taux": [
+  [
+   "KP1",
+   96
+  ],
+  [
+   "KP2",
+   71
+  ],
+  [
+   "KP3",
+   71
+  ],
+  [
+   "KP4",
+   75
+  ],
+  [
+   "KP5",
+   98
+  ],
+  [
+   "KP6",
+   100
+  ],
+  [
+   "KP7",
+   87
+  ]
+ ]
+}

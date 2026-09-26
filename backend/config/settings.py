@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
-    CORS_ALLOWED_ORIGINS=(list, ["http://localhost:5173", "http://localhost:4180"]),
+    CORS_ALLOWED_ORIGINS=(list, ["http://localhost:5174", "http://localhost:4180"]),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
@@ -114,6 +114,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_RATES": {"login": "10/min"},
+    "EXCEPTION_HANDLER": "apps.core.exceptions.camel_exception_handler",
 }
 
 SIMPLE_JWT = {
