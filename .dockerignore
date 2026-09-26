@@ -1,0 +1,12 @@
+# Contexte du build front : liste blanche des seuls fichiers utiles.
+*
+!package.json
+!package-lock.json
+!index.html
+!vite.config.ts
+!tsconfig.json
+!tsconfig.app.json
+!tsconfig.node.json
+!nginx.conf
+!src/
+!public/
