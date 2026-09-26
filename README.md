@@ -37,7 +37,7 @@ Autres scripts : `npm run build`, `npm run preview` (port 4180), `npm run lint`,
 # Terminal 1 — API (http://localhost:8000)
 cd backend
 python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
-cp .env.example .env   # ajouter http://localhost:5174 à CORS_ALLOWED_ORIGINS
+cp .env.example .env
 .venv/bin/python manage.py migrate
 .venv/bin/python manage.py load_demo
 .venv/bin/python manage.py runserver
