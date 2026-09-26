@@ -11,6 +11,8 @@ Conventions (voir backend/README.md) :
     migration entre modules, et même forme que le front.
 """
 
+import re
+
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models, transaction
 from django.db.models import F
@@ -43,6 +45,14 @@ class Organisation(models.Model):
             Organisation.objects.filter(pk=self.pk).update(uid_seq=F("uid_seq") + 1)
             self.refresh_from_db(fields=["uid_seq"])
         return f"{prefix}{self.uid_seq}"
+
+    def observe_uid(self, uid: str) -> None:
+        """Id fourni par le client (uid() du front) : le compteur ne doit pas le rattraper."""
+        m = re.search(r"(\d+)$", uid or "")
+        if m:
+            n = int(m.group(1))
+            if Organisation.objects.filter(pk=self.pk, uid_seq__lt=n).update(uid_seq=n):
+                self.uid_seq = n
 
 
 class Role(models.TextChoices):

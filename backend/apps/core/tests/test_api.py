@@ -106,3 +106,15 @@ def test_kebab_urls():
     assert kebab("analyseVersions") == "analyse-versions"
     assert kebab("sourcesNC") == "sources-nc"
     assert kebab("plansOps") == "plans-ops"
+
+
+def test_client_uid_advances_counter(api):
+    api.post(
+        "/api/v1/processus/",
+        {"id": "R250", "code": "X", "intitule": "X", "categorie": "Support"},
+        format="json",
+    )
+    api.user.organisation.refresh_from_db()
+    assert api.user.organisation.uid_seq == 250
+    r = api.post("/api/v1/processus/", {"code": "Y", "intitule": "Y", "categorie": "Support"}, format="json")
+    assert r.json()["id"] == "P251"

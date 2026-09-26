@@ -84,6 +84,8 @@ class OrgModelSerializer(CamelSerializerMixin, serializers.ModelSerializer):
         validated_data["organisation"] = org
         if not validated_data.get("uid"):
             validated_data["uid"] = org.next_uid(model.UID_PREFIX)
+        elif not self.context.get("skip_ref_validation"):
+            org.observe_uid(validated_data["uid"])
         if "position" not in validated_data:
             # ?at=start : en tête de liste (unshift() du front), sinon en fin (push()).
             request = self.context.get("request")
