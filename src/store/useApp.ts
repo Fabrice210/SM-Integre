@@ -4,7 +4,9 @@ import { ALL_N, ORG, USERS, type NormId } from '../data/referentiels'
 import { migrateDemo } from '../data/migrations'
 import { seed } from '../data/seed'
 import { nowStamp } from '../lib/dates'
+import { API_MODE } from '../services/api'
 import { localRepository as repo } from '../services/persistence'
+import { syncedUpdate } from '../services/sync'
 import type { AppState, Persisted, UiState } from './types'
 
 /**
@@ -62,11 +64,14 @@ interface Actions {
 }
 
 export const useApp = create<AppState & Actions>()(
-  immer((set) => ({
-    ...loadInitial(),
-    session: repo.loadSession(),
+  immer((set, get) => ({
+    // Mode API : données et session viennent du serveur après connexion (services/session.ts)
+    ...(API_MODE ? initialData() : loadInitial()),
+    session: API_MODE ? null : repo.loadSession(),
     ui: initialUi(),
-    update: (recipe) => set((s) => void recipe(s)),
+    update: API_MODE
+      ? syncedUpdate(get, (next) => set(next))
+      : (recipe) => set((s) => void recipe(s)),
     resetDemo: () => {
       repo.reset()
       set(() => ({ ...initialData(), session: null, ui: initialUi() }))
@@ -81,6 +86,7 @@ export const update = (recipe: (s: AppState) => void) => useApp.getState().updat
 const PERSISTED_KEYS = ['db', 'org', 'users', 'activeNorms', 'auditorAccess', 'erpModule', 'uidSeq', 'onboarded', 'dataVersion'] as const
 
 useApp.subscribe((s, prev) => {
+  if (API_MODE) return // le serveur fait foi (cf. services/sync.ts)
   // immer ne crée de nouvelles références que pour ce qui a réellement changé
   if (PERSISTED_KEYS.some((k) => s[k] !== prev[k])) {
     repo.saveData(Object.fromEntries(PERSISTED_KEYS.map((k) => [k, s[k]])) as unknown as Persisted)

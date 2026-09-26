@@ -3,9 +3,12 @@ import { go } from '../../app/navigation'
 import { routerRef } from '../../app/routerRef'
 import { Icon } from '../../components/ui/Icon'
 import { BRAND_MARK } from '../../components/ui/icons'
-import { ALL_N, NORMS, type NormId } from '../../data/referentiels'
+import { ALL_N, NORMS, type NormId, type User } from '../../data/referentiels'
+import { API_MODE } from '../../services/api'
+import { apiLogin } from '../../services/session'
 import { logAct, update, useApp } from '../../store/useApp'
 import { toast } from '../../store/useOverlays'
+import type { AppState } from '../../store/types'
 
 /** Contrôles de doLogin() de l'original. */
 const CHECKS: Record<string, (v: string) => boolean> = {
@@ -14,7 +17,12 @@ const CHECKS: Record<string, (v: string) => boolean> = {
 }
 
 /** doLogin() de l'original : valide, ouvre la session puis onboarding ou tableau de bord. */
-function doLogin(form: HTMLElement, setErrors: (e: Set<string>) => void) {
+function doLogin(
+  form: HTMLElement,
+  setErrors: (e: Set<string>) => void,
+  setServerErr: (msg: string | null) => void,
+  relaunch = false
+) {
   const val = (k: string) =>
     form.querySelector<HTMLInputElement>(`[data-f="${k}"] .inp`)!.value.trim()
   const bad = new Set<string>()
@@ -23,13 +31,35 @@ function doLogin(form: HTMLElement, setErrors: (e: Set<string>) => void) {
     if (!d[k] || !CHECKS[k](d[k])) bad.add(k)
   })
   setErrors(bad)
+  setServerErr(null)
   if (bad.size) {
     toast('Identifiants invalides : vérifiez les champs signalés.', 'warn')
     return
   }
+  if (API_MODE) {
+    // Connexion réelle : jetons JWT puis état du serveur (services/session.ts)
+    const remember = form.querySelector<HTMLInputElement>('#remember')?.checked ?? true
+    apiLogin(d.email, d.pwd, remember).then(
+      (user) => {
+        if (relaunch) update((s) => void (s.onboarded = false))
+        openSession((s) => s.users.find((x) => x.id === user.id) || user)
+      },
+      (e: Error) => {
+        setErrors(new Set(['pwd']))
+        setServerErr(e.message)
+        toast(e.message, 'warn')
+      }
+    )
+    return
+  }
+  openSession((s) => s.users.find((x) => x.email === d.email) || s.users[0])
+}
+
+/** Ouvre la session de l'utilisateur, puis onboarding ou tableau de bord. */
+function openSession(pick: (s: AppState) => User) {
   let onboarded = false
   update((s) => {
-    const u = s.users.find((x) => x.email === d.email) || s.users[0]
+    const u = pick(s)
     s.session = { userId: u.id, onboarded: s.onboarded }
     logAct(s, "s'est connecté(e)", 'Session')
     onboarded = s.onboarded
@@ -72,7 +102,8 @@ export function LoginPage() {
   const orgNom = useApp((s) => s.org.nom)
   const form = useRef<HTMLDivElement>(null)
   const [errors, setErrors] = useState<Set<string>>(new Set())
-  const login = () => doLogin(form.current!, setErrors)
+  const [serverErr, setServerErr] = useState<string | null>(null)
+  const login = (relaunch = false) => doLogin(form.current!, setErrors, setServerErr, relaunch)
 
   return (
     <div className="auth">
@@ -119,15 +150,15 @@ export function LoginPage() {
               t="email"
               err="Saisissez une adresse email valide."
               bad={errors.has('email')}
-              value="f.dossou-yovo@agrobenin.bj"
+              value={API_MODE ? '' : 'f.dossou-yovo@agrobenin.bj'}
             />
             <Field
               k="pwd"
               l="Mot de passe"
               t="password"
-              err="Saisissez votre mot de passe (8 caractères minimum)."
+              err={serverErr ?? 'Saisissez votre mot de passe (8 caractères minimum).'}
               bad={errors.has('pwd')}
-              value="Qse@Cotonou2026"
+              value={API_MODE ? '' : 'Qse@Cotonou2026'}
             />
             <div className="field" data-f="org">
               <label htmlFor="f_org">Organisme</label>
@@ -148,7 +179,7 @@ export function LoginPage() {
             <button
               className="btn primary"
               style={{ flex: 1, justifyContent: 'center', padding: 10 }}
-              onClick={login}
+              onClick={() => login()}
             >
               Se connecter
             </button>
@@ -159,6 +190,7 @@ export function LoginPage() {
               href="#"
               onClick={(e) => {
                 e.preventDefault()
+                if (API_MODE) return login(true)
                 update((s) => void (s.onboarded = false))
                 login()
               }}
@@ -166,9 +198,11 @@ export function LoginPage() {
               Relancer l'onboarding
             </a>
           </p>
-          <div className="note" style={{ marginTop: 14 }}>
-            Prototype de démonstration — les identifiants préremplis sont valides.
-          </div>
+          {API_MODE ? null : (
+            <div className="note" style={{ marginTop: 14 }}>
+              Prototype de démonstration — les identifiants préremplis sont valides.
+            </div>
+          )}
         </div>
       </section>
     </div>
