@@ -114,6 +114,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_RATES": {"login": "10/min"},
+    "EXCEPTION_HANDLER": "apps.core.exceptions.camel_exception_handler",
 }
 
 SIMPLE_JWT = {

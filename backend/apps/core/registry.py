@@ -34,6 +34,9 @@ class Collection:
     filterset_fields: tuple[str, ...] = ()
     # Ordre de chargement de la démo (plus petit d'abord).
     load_order: int = 100
+    # False : collection créée à l'usage par le front, absente de demo.json
+    # (bootstrap renvoie alors [] tant qu'elle est vide).
+    in_demo: bool = True
     app_label: str = field(default="", init=False)
 
     def __post_init__(self):
@@ -55,6 +58,10 @@ def register(name: str, model, serializer, module: str, **opts) -> Collection:
 
 def get(name: str) -> Collection:
     return _REGISTRY[name]
+
+
+def is_registered(name: str) -> bool:
+    return name in _REGISTRY
 
 
 def all_collections() -> list[Collection]:

@@ -149,10 +149,10 @@ class Texte(NormesMixin, OrgModel):
     # Diffusion tracée (v2) : champs absents tant que le texte n'a pas été diffusé ;
     # null (None non émis) plutôt que "" pour rester absents comme dans le front.
     diffuse = models.BooleanField(null=True, blank=True, help_text="Texte diffusé aux intéressés")
-    statut_diff = models.CharField(  # noqa: DJ001
+    statut_diff = models.CharField(
         max_length=32, null=True, blank=True, help_text="Statut de diffusion (Diffusé)"
     )
-    destinataire_diff = models.CharField(  # noqa: DJ001
+    destinataire_diff = models.CharField(
         max_length=500, null=True, blank=True, help_text="Cible de la dernière diffusion"
     )
 

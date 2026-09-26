@@ -29,6 +29,16 @@ def collection_urls(app_label: str) -> list:
         if col.singleton:
             view = vs.as_view({"get": "retrieve", "put": "update", "patch": "partial_update"})
             urls.append(path(f"{col.url}/", view, name=f"{col.name}-singleton"))
+            # Actions @action(detail=False) du ViewSet : /<url>/<url_path>/
+            for action in vs.get_extra_actions():
+                mapping = dict(action.mapping)
+                urls.append(
+                    path(
+                        f"{col.url}/{action.url_path}/",
+                        vs.as_view(mapping, **action.kwargs),
+                        name=f"{col.name}-{action.url_name}",
+                    )
+                )
         else:
             router.register(col.url, vs, basename=col.name)
     return urls + router.urls

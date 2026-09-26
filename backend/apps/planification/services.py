@@ -41,12 +41,7 @@ def add_years(d: datetime.date, n: int) -> datetime.date:
         return datetime.date(d.year + n, 3, 1)
 
 
-def is_registered(collection: str) -> bool:
-    try:
-        registry.get(collection)
-    except KeyError:
-        return False
-    return True
+is_registered = registry.is_registered
 
 
 def validate_optional_refs(serializer, collection: str, value):

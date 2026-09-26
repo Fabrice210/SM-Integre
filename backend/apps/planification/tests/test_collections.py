@@ -227,7 +227,7 @@ def test_risque_sequential_id_and_validation(api):
         ({"criticite": 0}, "criticite"),
         ({"processus": ["P99"]}, "processus"),
         ({"type": "Financier"}, "type"),
-        ({"statutAction": "Terminé"}, "statut_action"),  # erreurs en snake_case (core)
+        ({"statutAction": "Terminé"}, "statutAction"),
         ({"echeance": "—"}, "echeance"),
     ]:
         bad = api.post("/api/v1/risques/", {**RISQUE, **patch}, format="json")

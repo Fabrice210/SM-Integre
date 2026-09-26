@@ -81,3 +81,9 @@ def test_journal_append_only(api):
     assert r.status_code == 201
     assert r.json()["u"] == "Florence DOSSOU-YOVO"
     assert api.get("/api/v1/journal/").json()[0]["a"] == "test"
+
+
+def test_validation_errors_use_front_field_names(api):
+    r = api.post("/api/v1/processus/", {"id": "P01", "code": "X", "intitule": "X"}, format="json")
+    assert r.status_code == 400
+    assert set(r.json()) == {"id", "categorie"}

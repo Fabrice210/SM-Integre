@@ -1,7 +1,7 @@
 """Collections du module 2 — Leadership (voir apps/core/registry.py).
 
 Les axes stratégiques (db.axes), édités en 2.1, sont enregistrés par apps.contexte.
-db.diffusions n'est pas dans la démo : exposée hors registre (voir urls.py).
+db.diffusions n'est pas dans la démo (créée à l'usage) : in_demo=False.
 """
 
 from apps.core.registry import register
@@ -93,4 +93,14 @@ register(
     load_order=40,
     search_fields=("objet", "ordre_du_jour", "compte_rendu", "plan_action"),
     filterset_fields=("statut", "participants"),
+)
+
+register(
+    "diffusions",
+    m.Diffusion,
+    s.DiffusionSerializer,
+    module="m2",
+    viewset=v.DiffusionViewSet,
+    in_demo=False,
+    load_order=90,
 )

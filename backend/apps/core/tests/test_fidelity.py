@@ -14,7 +14,7 @@ pytestmark = pytest.mark.django_db
 def test_registered_collections_round_trip(api, demo_data):
     state = api.get("/api/v1/bootstrap/").json()
     for col in registry.all_collections():
-        expected = demo_data["db"].get(col.name)
+        expected = demo_data["db"].get(col.name, None if col.in_demo else [])
         assert expected is not None, f"{col.name} absente de demo.json"
         got = state["db"][col.name]
         if col.singleton:

@@ -127,7 +127,7 @@ class Enjeu(NormesMixin, OrgModel):
     source = models.CharField(max_length=32, choices=Source.choices)
     qualification = models.CharField(max_length=16, choices=Qualification.choices)
     axes = models.JSONField(default=list, blank=True, help_text="Axes de la politique associés (id d'axes)")
-    origine = models.CharField(  # noqa: DJ001 — null : clé absente comme dans le front
+    origine = models.CharField(  # null : clé absente comme dans le front
         max_length=32,
         null=True,
         blank=True,

@@ -5,4 +5,5 @@ extend-exclude = ["**/migrations/*", ".venv"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "DJ"]
-ignore = ["E501"]
+# DJ001 : null=True sur les champs texte est voulu (champ absent côté front).
+ignore = ["E501", "DJ001"]
