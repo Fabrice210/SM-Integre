@@ -27,6 +27,14 @@ def _link(message):
 # ---------- Inscription ----------
 
 
+@pytest.mark.parametrize("allowed", [False, True])
+def test_auth_config_exposes_signup(settings, allowed):
+    settings.ALLOW_SIGNUP = allowed
+    r = APIClient().get("/api/v1/auth/config/")
+    assert r.status_code == 200
+    assert r.json() == {"signup": allowed}
+
+
 def test_signup_disabled_by_default(settings):
     settings.ALLOW_SIGNUP = False
     r = APIClient().post("/api/v1/auth/signup/", SIGNUP, format="json")

@@ -13,6 +13,7 @@ urlpatterns = [
     path("health/", api.health, name="health"),
     path("ready/", api.ready, name="ready"),
     path("auth/login/", api.LoginView.as_view(), name="login"),
+    path("auth/config/", accounts.AuthConfigView.as_view(), name="auth-config"),
     path("auth/signup/", accounts.SignupView.as_view(), name="signup"),
     path("auth/password/reset/", accounts.PasswordResetView.as_view(), name="password-reset"),
     path("auth/password/confirm/", accounts.PasswordConfirmView.as_view(), name="password-confirm"),
