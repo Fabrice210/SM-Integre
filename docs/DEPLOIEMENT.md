@@ -130,7 +130,9 @@ ou changer immédiatement `DEMO_PASSWORD` et les mots de passe.
   `{organisation, sigle?, nom, email, password}` crée un organisme **vierge** (aucune
   donnée de démo, `onboarded=false`) et son Responsable SM, et renvoie
   `{access, refresh, user}` comme la connexion. Désactivée, l'URL répond 404. Quota :
-  5 inscriptions / heure / adresse IP (`THROTTLE_SIGNUP`).
+  5 inscriptions / heure / adresse IP (`THROTTLE_SIGNUP`). `GET /api/v1/auth/config/`
+  (public) renvoie `{signup: true|false}` : le front n'affiche le lien « Créer un
+  organisme » (page `/inscription`) que si l'inscription est ouverte.
 - **Invitation** : un Responsable SM / Administrateur crée l'utilisateur par
   `POST /api/v1/users/` **sans mot de passe** (c'est ce que fait l'écran Utilisateurs du
   front) : le compte n'a pas de mot de passe utilisable et reçoit un e-mail avec le lien
@@ -138,8 +140,9 @@ ou changer immédiatement `DEMO_PASSWORD` et les mots de passe.
 - **Mot de passe oublié** : `POST /api/v1/auth/password/reset/ {email}` (même réponse que le
   compte existe ou non), puis `POST /api/v1/auth/password/confirm/ {uid, token, password}`.
   Jetons Django : valables `PASSWORD_RESET_TIMEOUT`, invalidés dès que le mot de passe
-  change (usage unique). La page du front qui reçoit le lien doit appeler ce second point
-  d'accès.
+  change (usage unique). La page du front qui reçoit le lien (`/definir-mot-de-passe`)
+  appelle ce second point d'accès ; la demande se fait depuis `/mot-de-passe-oublie`
+  (lien « Mot de passe oublié ? » de l'écran de connexion).
 
 ## E-mails
 

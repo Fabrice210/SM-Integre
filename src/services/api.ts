@@ -180,6 +180,56 @@ export async function login(email: string, password: string, remember = true): P
   return r.user
 }
 
+/** Erreurs par champ d'une réponse DRF 400 (clés camelCase du serveur), messages joints. */
+export function fieldErrors(e: unknown): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (!(e instanceof ApiError) || !e.data || typeof e.data !== 'object') return out
+  for (const [k, v] of Object.entries(e.data as Record<string, unknown>)) {
+    if (k === 'detail') continue
+    out[k] = Array.isArray(v) ? v.map(String).join(' ') : typeof v === 'string' ? v : ''
+  }
+  return out
+}
+
+/** Options publiques de l'écran de connexion (GET /auth/config/). */
+export const fetchAuthConfig = () => request<{ signup: boolean }>('/auth/config/', { auth: false })
+
+/** Données de POST /auth/signup/ : nouvel organisme et son Responsable SM. */
+export interface SignupData {
+  organisation: string
+  sigle?: string
+  nom: string
+  email: string
+  password: string
+}
+
+/** Inscription d'un organisme ; conserve les jetons renvoyés (session ouverte). 404 : fermée. */
+export async function signup(data: SignupData): Promise<User> {
+  const r = await request<LoginResponse>('/auth/signup/', {
+    method: 'POST',
+    body: data,
+    auth: false,
+  })
+  storeTokens(r, true)
+  return r.user
+}
+
+/** Demande d'un lien de (ré)initialisation du mot de passe ; réponse neutre. */
+export const requestPasswordReset = (email: string) =>
+  request<{ detail: string }>('/auth/password/reset/', {
+    method: 'POST',
+    body: { email },
+    auth: false,
+  })
+
+/** Définition du mot de passe avec le jeton reçu par e-mail. */
+export const confirmPassword = (uid: string, token: string, password: string) =>
+  request<{ detail: string }>('/auth/password/confirm/', {
+    method: 'POST',
+    body: { uid, token, password },
+    auth: false,
+  })
+
 /** Réponse de POST /assistant/ask/ (sources : éléments cités de la `db` de l'organisme). */
 export interface AssistantAnswer {
   reponse: string

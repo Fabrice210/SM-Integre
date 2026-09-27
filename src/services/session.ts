@@ -56,6 +56,13 @@ export async function apiLogin(email: string, password: string, remember: boolea
   return user
 }
 
+/** Inscription d'un organisme : jetons renvoyés, puis état (vierge) du serveur. */
+export async function apiSignup(data: api.SignupData): Promise<User> {
+  const user = await api.signup(data)
+  hydrate(await api.fetchBootstrap())
+  return user
+}
+
 /** Au démarrage : reprend la session si le jeton de renouvellement est encore valide. */
 export async function restoreSession() {
   try {

@@ -1,6 +1,8 @@
 """
 Comptes et onboarding multi-organismes.
 
+  GET  /auth/config/            {signup} : options publiques de l'écran de connexion
+                                (lien d'inscription affiché seulement si ALLOW_SIGNUP).
   POST /auth/signup/            {organisation, sigle?, nom, email, password}
                                 crée un organisme vierge (sans données de démo) et son
                                 Responsable SM ; renvoie {access, refresh, user}.
@@ -74,6 +76,21 @@ def send_password_email(user, invitation: bool = False, inviter=None) -> bool:
         logger.exception("Échec de l'envoi de l'e-mail de mot de passe", extra={"email": user.email})
         return False
     return True
+
+
+# ---------- Options publiques de l'écran de connexion ----------
+
+
+class AuthConfigView(generics.GenericAPIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    @extend_schema(
+        summary="Options publiques de l'écran de connexion (inscription ouverte ?)",
+        responses=inline_serializer("AuthConfig", {"signup": serializers.BooleanField()}),
+    )
+    def get(self, request):
+        return Response({"signup": bool(settings.ALLOW_SIGNUP)})
 
 
 # ---------- Inscription d'un organisme ----------
