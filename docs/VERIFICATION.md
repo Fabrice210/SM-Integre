@@ -60,7 +60,7 @@ E2E_DIR=/tmp/auth-e2e CHROMIUM_PATH=… node scripts/api-auth-e2e.mjs   # démar
 | ruff, format, migrations | propres |
 | `check --deploy`, OpenAPI `--fail-on-warn` | aucun avertissement |
 | typecheck, lint (0 erreur), build | OK |
-| `api-e2e.mjs` (interface réelle, M1 à M6, robustesse, Collaborateur, session expirée) | 140 / 140 |
+| `api-e2e.mjs` (interface réelle, M1 à M6, robustesse, collisions d'id, refus, accusé de lecture, Collaborateur, session expirée) | 164 / 164 |
 | `api-smoke.mjs` | 31 / 31 |
 | `api-auth-e2e.mjs` | 22 / 22 |
 
