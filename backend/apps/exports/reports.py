@@ -246,7 +246,7 @@ def dashboard_pdf(org, user, stamp: str, norm: str, today: dt.date) -> bytes:
                 for r in v["parProcessus"]
             ],
             doc.width,
-            weights=[30, 24, 9, 9, 9, 10, 9],
+            weights=[27, 21, 11, 10, 10, 11, 10],
         )
     )
     for title, rows in stat_rows(v["statistiques"]):
