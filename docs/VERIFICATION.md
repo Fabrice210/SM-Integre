@@ -37,6 +37,7 @@ Mode local (sans `VITE_API_URL`) : non-régression visuelle avec `scripts/visual
 # backend : migrate, load_demo, runserver 8000 (CORS_ALLOWED_ORIGINS=http://localhost:5174)
 VITE_API_URL=http://localhost:8000/api/v1 npx vite --port 5174 --strictPort
 CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome node scripts/api-smoke.mjs http://localhost:5174
+API_URL=http://localhost:8010/api/v1 node scripts/api-e2e.mjs http://localhost:5180  # base neuve, cf. en-tête du script
 E2E_DIR=/tmp/auth-e2e CHROMIUM_PATH=… node scripts/api-auth-e2e.mjs   # démarre ses propres serveurs
 ```
 
@@ -55,9 +56,11 @@ E2E_DIR=/tmp/auth-e2e CHROMIUM_PATH=… node scripts/api-auth-e2e.mjs   # démar
 | Contrôle | Résultat |
 |---|---|
 | pytest (SQLite et PostgreSQL 16) | tout vert |
+| non-régression visuelle, mode local | 0 différence sur 267 captures |
 | ruff, format, migrations | propres |
 | `check --deploy`, OpenAPI `--fail-on-warn` | aucun avertissement |
 | typecheck, lint (0 erreur), build | OK |
+| `api-e2e.mjs` (interface réelle, M1 à M6, robustesse, Collaborateur, session expirée) | 140 / 140 |
 | `api-smoke.mjs` | 31 / 31 |
 | `api-auth-e2e.mjs` | 22 / 22 |
 
