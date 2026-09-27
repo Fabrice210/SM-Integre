@@ -2,8 +2,10 @@ import { useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { pageTitle } from '../../app/pages'
 import { Icon } from '../../components/ui/Icon'
+import { API_MODE } from '../../services/api'
 import { update, useApp } from '../../store/useApp'
 import { AI_CTX, aiAnswer } from './aiAnswer'
+import { askRemote, sourceLink } from './aiRemote'
 
 const DEFAULT_Q = 'Quelles actions sont en retard ?'
 
@@ -24,6 +26,12 @@ export function AiPanel() {
   const aiAsk = (raw: string) => {
     const q = (raw || '').trim()
     if (!q) return
+    if (API_MODE) {
+      if (msgs.some((m) => m.wait)) return
+      void askRemote(q, pageId)
+      if (input.current) input.current.value = DEFAULT_Q
+      return
+    }
     update((s) => {
       s.ui.aiMsgs.push({ b: 0, t: q })
       s.ui.aiMsgs.push({ b: 1, t: aiAnswer(q.toLowerCase(), s) })
@@ -51,8 +59,26 @@ export function AiPanel() {
       </div>
       <div className="ai-b" id="aiBody" ref={body}>
         {msgs.map((m, i) => (
-          <div key={i} className={`msg ${m.b ? 'bot' : 'me'}`}>
+          <div key={i} className={`msg ${m.b ? 'bot' : 'me'}${m.wait ? ' muted' : ''}`}>
             {m.t}
+            {m.src?.length ? (
+              <div className="ai-sugg">
+                <span className="small muted">Sources :</span>
+                {m.src.map((s) => {
+                  const open = sourceLink(s)
+                  const label = `${s.id} — ${s.libelle}`
+                  return open ? (
+                    <button key={s.collection + s.id} onClick={open} title="Ouvrir l'élément">
+                      {label}
+                    </button>
+                  ) : (
+                    <span key={s.collection + s.id} className="small">
+                      {label}
+                    </span>
+                  )
+                })}
+              </div>
+            ) : null}
           </div>
         ))}
         <div className="ai-sugg">
@@ -83,8 +109,9 @@ export function AiPanel() {
         </button>
       </div>
       <div className="ai-note">
-        Démonstration : réponses calculées à partir des données de la plateforme. Isolation stricte
-        par organisme.
+        {API_MODE
+          ? 'Réponses générées par IA à partir des données de votre organisme, à valider par un humain. Isolation stricte par organisme.'
+          : 'Démonstration : réponses calculées à partir des données de la plateforme. Isolation stricte par organisme.'}
       </div>
     </aside>
   )

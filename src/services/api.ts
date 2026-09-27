@@ -1,5 +1,5 @@
 import type { User } from '../data/referentiels'
-import type { Persisted } from '../store/types'
+import type { AiSource, Persisted } from '../store/types'
 
 /**
  * Client de l'API Django (backend/). Le mode API n'est actif que si VITE_API_URL
@@ -179,6 +179,28 @@ export async function login(email: string, password: string, remember = true): P
   storeTokens(r, remember)
   return r.user
 }
+
+/** Réponse de POST /assistant/ask/ (sources : éléments cités de la `db` de l'organisme). */
+export interface AssistantAnswer {
+  reponse: string
+  sources: AiSource[]
+}
+
+/** Échange précédent transmis à l'assistant pour le suivi de la conversation. */
+export interface AssistantTurn {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+/**
+ * Question à l'assistant IA du serveur. Un 503 `{fallback: true}` signale que l'assistant
+ * distant n'est pas configuré ou indisponible : l'appelant garde alors son moteur local.
+ */
+export const askAssistant = (question: string, contexte: string, historique: AssistantTurn[]) =>
+  request<AssistantAnswer>('/assistant/ask/', {
+    method: 'POST',
+    body: { question, contexte, historique },
+  })
 
 export const fetchMe = () => request<User>('/auth/me/')
 export const fetchBootstrap = () => request<BootstrapPayload>('/bootstrap/')

@@ -41,6 +41,12 @@ services:
       JWT_ACCESS_MINUTES: ${JWT_ACCESS_MINUTES:-30}
       JWT_REFRESH_DAYS: ${JWT_REFRESH_DAYS:-7}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+      # Assistant IA (API Claude) : sans clé, le front garde son moteur local.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ASSISTANT_MODEL: ${ASSISTANT_MODEL:-}
+      ASSISTANT_EFFORT: ${ASSISTANT_EFFORT-medium}
+      ASSISTANT_RATE: ${ASSISTANT_RATE:-30/hour}
+      ASSISTANT_TIMEOUT: ${ASSISTANT_TIMEOUT:-45}
     volumes:
       - media:/app/media
     # Pas de port publié : l'API est jointe via le proxy nginx du front.

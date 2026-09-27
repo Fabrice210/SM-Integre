@@ -48,6 +48,7 @@ apps/support/      Module 4 — Support
 apps/operations/   Module 5 — Maîtrise opérationnelle
 apps/performance/  Module 6 — Performance & amélioration
 apps/pilotage/     Transverse : couverture normative, clôtures, tableau de bord
+apps/assistant/    Assistant IA (API Claude) fondé sur les données de l'organisme
 demo/demo.json     données de démo exportées du front (node scripts/export-demo-json.mjs)
 ```
 
@@ -95,3 +96,36 @@ demo/demo.json     données de démo exportées du front (node scripts/export-de
 11. **Synchronisation du front** : le front envoie l'état complet des éléments modifiés
     (PUT) et son propre journal ; les actions métier de l'API (`/documents/D1/approuver/`…)
     servent les autres clients et appliquent les mêmes règles de droits.
+
+## Assistant IA
+
+`POST /api/v1/assistant/ask/` — réponse de l'API Claude (SDK officiel `anthropic`) fondée
+**uniquement** sur les données de l'organisme de l'utilisateur ; les propositions sont à
+valider par un humain et l'assistant n'exécute aucune action.
+
+```
+entrée   {question, contexte?: "m3-risques" (page courante), historique?: [{role, content}]}
+200      {reponse, sources: [{collection, id, libelle}]}
+503      {detail, fallback: true}   clé absente ou API Claude indisponible
+```
+
+- **Contexte** (`apps/assistant/context.py`) : collections relues par les sérialiseurs du
+  registre, filtrées par organisme, en lignes compactes `[collection:id] {...}` (chaînes
+  tronquées, listes limitées, fichiers masqués). Bloc stable, mis en cache (prompt
+  caching) : organisme, inventaire, alertes et validations en attente
+  (`apps.pilotage.metrics`), enregistrements du module de la page courante. Bloc
+  question : collections nommées dans la question puis recherche par mots-clés, sous budget.
+- **Prompt** (`apps/assistant/service.py`) : consignes en français (données fournies
+  uniquement, citer `[collection:id]`, dire quand l'information manque, aucune action).
+  Seules les références citées **et** transmises deviennent des `sources` ; les autres
+  sont retirées du texte.
+- **Sécurité** : membres authentifiés de l'organisme (auditeurs externes selon
+  `auditorAccess`) ; limite par utilisateur `ASSISTANT_RATE` (défaut `30/hour`) ;
+  chaque question aboutie est tracée au journal (« a interrogé l'assistant IA »).
+- **Repli** : sans `ANTHROPIC_API_KEY`, ou si l'API est injoignable / en erreur, réponse
+  503 `{fallback: true}` : le front utilise son moteur local (`src/features/ai/aiAnswer.ts`).
+- **Variables** : `ANTHROPIC_API_KEY`, `ASSISTANT_MODEL` (défaut `claude-opus-5`),
+  `ASSISTANT_EFFORT` (`medium`), `ASSISTANT_MAX_TOKENS` (`8000`), `ASSISTANT_TIMEOUT`
+  (`45` s), `ASSISTANT_RATE`, `ASSISTANT_FALLBACKS` (`1` : repli serveur sur un autre
+  modèle en cas de refus, pour les modèles qui le proposent). Voir `docs/DEPLOIEMENT.md`.
+- **Tests** : `apps/assistant/tests/` simule le client anthropic (aucun appel réseau).

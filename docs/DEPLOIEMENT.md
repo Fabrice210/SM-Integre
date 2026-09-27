@@ -57,6 +57,12 @@ Elles sont lues dans le fichier `.env` à la racine (modèle : `.env.docker.exam
 | `GUNICORN_WORKERS` | `3` | Processus gunicorn (≈ 2 × cœurs + 1) |
 | `VITE_API_URL` | `/api/v1` | URL de l'API vue du navigateur, **figée au build** du front (reconstruire après changement). Vide : mode local sans backend |
 | `FRONT_PORT` | `8080` | Port publié sur l'hôte |
+| `ANTHROPIC_API_KEY` | — (vide) | Clé de l'API Claude pour l'assistant IA. Vide : l'assistant répond 503 `{fallback: true}` et le front garde son moteur local |
+| `ASSISTANT_MODEL` | `claude-opus-5` | Modèle Claude utilisé par l'assistant |
+| `ASSISTANT_EFFORT` | `medium` | Effort de raisonnement (`low` … `max`) ; vide : paramètre non envoyé (modèles qui ne le prennent pas en charge) |
+| `ASSISTANT_RATE` | `30/hour` | Questions autorisées par utilisateur (syntaxe DRF : `N/second\|minute\|hour\|day`) |
+| `ASSISTANT_TIMEOUT` | `45` | Délai d'attente de l'API Claude, en secondes ; rester sous `GUNICORN_TIMEOUT` (60) |
+| `ASSISTANT_MAX_TOKENS` / `ASSISTANT_FALLBACKS` | `8000` / `1` | Plafond de sortie (réflexion comprise) ; repli serveur sur un autre modèle en cas de refus (`0` pour le désactiver) |
 
 `DATABASE_URL` est construite par `docker-compose.yml` à partir des variables `POSTGRES_*`.
 Hors compose, le backend lit directement `DATABASE_URL`, `SECRET_KEY`, etc.
@@ -140,6 +146,12 @@ tester régulièrement une restauration.
    réseau compose (pas de `ports` sur `db`).
 7. Vérifier la configuration : `docker compose exec backend python manage.py check --deploy`.
 8. Sauvegardes planifiées et supervision de `/api/v1/health/` (et `/healthz` pour nginx).
+9. **Assistant IA** (facultatif) : renseigner `ANTHROPIC_API_KEY` (clé propre à
+   l'environnement, jamais commitée). Les données de l'organisme de l'utilisateur
+   (résumé compact) sont alors transmises à l'API Claude d'Anthropic à chaque question :
+   le faire valider par l'organisme (politique de protection des données). Sans clé,
+   aucune donnée ne sort et l'assistant garde ses réponses locales. Détails :
+   `backend/README.md`, section « Assistant IA ».
 
 ## Intégration continue
 
