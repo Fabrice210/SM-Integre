@@ -55,6 +55,7 @@ export function hydrate(p: api.BootstrapPayload) {
     activeNorms: p.activeNorms,
     auditorAccess: p.auditorAccess,
     erpModule: p.erpModule,
+    droitsParProcessus: p.droitsParProcessus ?? false,
     onboarded: p.onboarded,
     // Les id sont générés par le client (nextId) : le compteur repart après le plus grand.
     uidSeq: Math.max(p.uidSeq ?? 0, maxIdSeq(db)),

@@ -37,6 +37,9 @@ class Organisation(models.Model):
     auditor_access = models.BooleanField(default=True)
     erp_module = models.BooleanField(default=False)
     onboarded = models.BooleanField(default=False)
+    # Droits fins par processus (optionnels) : un pilote / copilote sans rôle global n'écrit
+    # que sur les éléments de ses processus (apps.core.scope).
+    droits_par_processus = models.BooleanField(default=False)
     # Compteur de uid() du front : R101, R102…
     uid_seq = models.PositiveIntegerField(default=100)
     created_at = models.DateTimeField(auto_now_add=True)

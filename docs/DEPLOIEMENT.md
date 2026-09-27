@@ -200,6 +200,12 @@ ou changer immédiatement `DEMO_PASSWORD` et les mots de passe.
   change (usage unique). La page du front qui reçoit le lien (`/definir-mot-de-passe`)
   appelle ce second point d'accès ; la demande se fait depuis `/mot-de-passe-oublie`
   (lien « Mot de passe oublié ? » de l'écran de connexion).
+- **Droits par processus** (facultatif, désactivé par défaut) : un Responsable SM /
+  Administrateur l'active dans Paramètres › Options (case « Droits par processus »,
+  mode API) ou par `PATCH /api/v1/settings/ {"droitsParProcessus": true}`. Les pilotes /
+  copilotes sans rôle global n'écrivent alors que sur les éléments de leurs processus :
+  vérifier avant activation que `proprietaire` / `copilote` des processus portent
+  exactement le nom complet (`nom`) des utilisateurs. Règles : `backend/README.md`.
 
 ## E-mails
 

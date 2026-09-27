@@ -105,6 +105,31 @@ demo/demo.json     données de démo exportées du front (node scripts/export-de
    accusé de lecture, déclaration de NC, journal ; les autres actions ouvertes (ressource,
    document, évaluation de formation, communication) exigent d'être la personne nommée dans
    l'élément. `apps/core/tests/test_security.py` vérifie ces règles sur toutes les routes.
+   **Droits par processus** (`apps/core/scope.py`, réglage d'organisme
+   `droitsParProcessus`, désactivé par défaut : comportement ci-dessus inchangé). Activé,
+   un utilisateur dont les rôles d'écriture sont seulement « Pilote de processus » /
+   « Copilote de processus » n'écrit (création, PUT / PATCH / DELETE, actions métier
+   `detail=True`) que sur les éléments rattachés à un de ses processus (pilote :
+   `Processus.proprietaire == user.nom` ; copilote : `user.nom in Processus.copilote`) :
+   - rattachement par le champ `processus` (uid ou liste d'uids : au moins un des siens) ;
+     vide ou « Tous » : rôles globaux seulement ; en création, le `processus` du corps ;
+     en PUT / PATCH, le nouveau `processus` aussi (pas de déplacement hors de ses processus) ;
+   - collections concernées (champ `processus`) : `risques`, `opportunites`, `objectifs`,
+     `fichesMaitrise`, `postes`, `indicateurs`, `prestataires`, `ncs`, `registre`,
+     `communications`, `documents`, `modeles`, `plansOps`, `ressources` ; et `processus`
+     (sa propre fiche, sans changer `proprietaire` / `copilote` ; ni création ni suppression) ;
+   - rôles globaux seulement : objets uniques (`politique`, `competences`, `statsSurv`,
+     `sourcesNC`, `cloturesMois`, `cloturesAn`), collections sans champ `processus`
+     (contexte, parties intéressées, sites, SWOT / PESTEL, comité, réunions, textes,
+     déclarations, savoirs, formations, audits, revues, urgences, diffusions…) et actions
+     de liste (`detail=False` : import d'objectifs, planification annuelle…) ;
+   - inchangé : lecture (tout membre), rôles globaux (Dirigeant, Responsable SM, Auditeur
+     interne, Administrateur système : tous les droits), routes ouvertes à tout membre
+     (accusé de lecture, journal, actions de la personne nommée ; déclaration de NC — hors
+     de ses processus, un pilote limité déclare comme un collaborateur) ;
+   - refus : 403 avec motif (`detail`), que la synchronisation du front affiche avant de
+     recharger l'état du serveur. Tests : `apps/core/tests/test_process_rights.py`
+     (dont un test paramétré sur toutes les collections à champ `processus`).
    Identifiants (`id`) : lettres, chiffres, `_`, `-`, `.` (32 caractères, pas de point en tête).
 9. **Traçabilité** : chaque écriture API crée un `AuditLog` automatique ; le journal
    fonctionnel (`/api/v1/journal/`) est en ajout seul. Dans les actions métier, utiliser

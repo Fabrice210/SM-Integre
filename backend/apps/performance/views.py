@@ -33,6 +33,7 @@ from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.core import scope
 from apps.core.models import AuditLog
 from apps.core.permissions import IsMemberAnyMethod
 from apps.core.viewsets import OrgModelViewSet, log_write
@@ -325,7 +326,11 @@ class NonConformiteViewSet(WorkflowViewSet):
     @transaction.atomic
     def perform_create(self, serializer):
         user = self.request.user
-        if not can_write(user):
+        # Pilote limité à ses processus (droitsParProcessus) : déclarant ordinaire hors de ceux-ci.
+        out_of_scope = scope.is_process_scoped(user) and not scope.owns_any(
+            self.request, serializer.validated_data.get("processus")
+        )
+        if not can_write(user) or out_of_scope:
             # Un collaborateur déclare : le circuit démarre toujours au premier niveau, la
             # référence est générée (pas de doublon d'une NC existante), l'efficacité et
             # l'historique (`hist`) ne sont pas renseignables par le déclarant.

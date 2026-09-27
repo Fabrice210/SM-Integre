@@ -22,7 +22,7 @@ import { ApiError, isAuthenticated, request } from './api'
  *   db.diffusions     -> POST   /diffusions/              (ajout seul)
  *   org               -> PUT    /organisation/
  *   users             -> POST / PUT / DELETE /users/<id>/
- *   réglages          -> PATCH  /settings/                (activeNorms, auditorAccess…)
+ *   réglages          -> PATCH  /settings/                (activeNorms, auditorAccess, droitsParProcessus…)
  *
  * Un élément nouveau sans `id` en reçoit un (préfixe de sa collection + compteur), pour
  * être suivi comme les autres (sinon chaque update suivant le recréerait).
@@ -62,7 +62,13 @@ const APPEND_ONLY: Record<string, (e: Rec) => unknown> = {
   // id, date et auteur fixés par le serveur
   diffusions: ({ doc, canal, destinataires, piece }) => ({ doc, canal, destinataires, piece }),
 }
-const SETTINGS_KEYS = ['activeNorms', 'auditorAccess', 'erpModule', 'onboarded'] as const
+const SETTINGS_KEYS = [
+  'activeNorms',
+  'auditorAccess',
+  'erpModule',
+  'onboarded',
+  'droitsParProcessus',
+] as const
 /** Collections hors `db` toujours présentes côté serveur. */
 const CORE = ['journal', 'org', 'users', 'settings']
 

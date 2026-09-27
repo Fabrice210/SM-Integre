@@ -17,6 +17,11 @@ export interface Persisted {
   activeNorms: NormId[]
   auditorAccess: boolean
   erpModule: boolean
+  /**
+   * Droits fins par processus (mode API seulement, réglage de l'organisme côté serveur) :
+   * un pilote / copilote sans rôle global n'écrit que sur les éléments de ses processus.
+   */
+  droitsParProcessus?: boolean
   /** Compteur de uid() : R101, R102… (continue après rechargement). */
   uidSeq: number
   /** L'organisme a terminé l'assistant d'onboarding (S.onboarded). */

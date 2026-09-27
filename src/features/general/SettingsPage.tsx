@@ -2,9 +2,10 @@ import { routerRef } from '../../app/routerRef'
 import { Icon } from '../../components/ui/Icon'
 import { PageHead } from '../../components/ui/PageHead'
 import { ALL_N, NORMS, type NormId } from '../../data/referentiels'
+import { API_MODE } from '../../services/api'
 import { readForm } from '../../forms/formControllers'
 import { FormRenderer } from '../../forms/FormRenderer'
-import { logAct, update, useApp } from '../../store/useApp'
+import { currentUser, logAct, update, useApp } from '../../store/useApp'
 import { toast } from '../../store/useOverlays'
 import { ORG_F } from './forms'
 import { toggleNorm } from './toggleNorm'
@@ -23,6 +24,9 @@ function saveOrg() {
   toast('Profil enregistré.')
 }
 
+/** Rôles qui administrent l'organisme (utilisateurs, réglages), comme ADMIN_ROLES du backend. */
+const ADMIN_ROLES = ['Responsable SM', 'Administrateur système']
+
 /** Bouton « Relancer l'onboarding » : retour à l'assistant, étape 1. */
 function restartOnboarding() {
   update((s) => {
@@ -39,6 +43,9 @@ export function SettingsPage() {
   const activeNorms = useApp((s) => s.activeNorms)
   const auditorAccess = useApp((s) => s.auditorAccess)
   const erpModule = useApp((s) => s.erpModule)
+  const droitsParProcessus = useApp((s) => s.droitsParProcessus ?? false)
+  // Mode API seulement : le mode local (démo) reste strictement identique.
+  const isAdmin = useApp((s) => currentUser(s).roles.some((r) => ADMIN_ROLES.includes(r)))
 
   return (
     <>
@@ -154,6 +161,36 @@ export function SettingsPage() {
                 />
               </label>
             </div>
+            {API_MODE && isAdmin ? (
+              <div className="cfg-row" style={{ marginBottom: 8 }}>
+                <span>
+                  <b>Droits par processus</b>
+                  <br />
+                  <span className="small muted">
+                    Pilotes et copilotes ne modifient que les éléments de leurs processus
+                  </span>
+                </span>
+                <label className="toggle st">
+                  <input
+                    type="checkbox"
+                    checked={droitsParProcessus}
+                    aria-label="Droits par processus"
+                    onChange={(e) => {
+                      const on = e.target.checked
+                      update((s) => {
+                        s.droitsParProcessus = on
+                        logAct(
+                          s,
+                          (on ? 'a activé' : 'a désactivé') + ' les droits par processus',
+                          'Paramètres'
+                        )
+                      })
+                      toast('Droits par processus ' + (on ? 'activés' : 'désactivés') + '.')
+                    }}
+                  />
+                </label>
+              </div>
+            ) : null}
             <div className="btn-row" style={{ marginTop: 12 }}>
               <button className="btn" onClick={restartOnboarding}>
                 <Icon name="refresh" size={15} /> Relancer l'onboarding

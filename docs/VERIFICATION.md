@@ -19,6 +19,10 @@ Couverture des tests :
 - **sécurité** (`apps/core/tests/test_security.py`) : isolation entre organismes, droits
   d'écriture et auditeurs externes sur toutes les collections et toutes les actions,
   entrées aberrantes (jamais d'erreur 500) ;
+- **droits par processus** (`apps/core/tests/test_process_rights.py`) : réglage désactivé =
+  comportement d'origine ; activé : pilote / copilote sur leurs processus, refus (403)
+  ailleurs, listes de processus, éléments sans processus, création, actions métier, rôles
+  globaux, et un test générique sur toutes les collections à champ `processus` ;
 - règles métier et workflows de chaque module, exports, notifications, assistant IA
   (client Claude simulé), comptes (inscription, invitation, mot de passe, jetons).
 
@@ -39,6 +43,7 @@ VITE_API_URL=http://localhost:8000/api/v1 npx vite --port 5174 --strictPort
 CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome node scripts/api-smoke.mjs http://localhost:5174
 API_URL=http://localhost:8010/api/v1 node scripts/api-e2e.mjs http://localhost:5180  # base neuve, cf. en-tête du script
 E2E_DIR=/tmp/auth-e2e CHROMIUM_PATH=… node scripts/api-auth-e2e.mjs   # démarre ses propres serveurs
+E2E_DIR=/tmp/rights-e2e CHROMIUM_PATH=… node scripts/api-rights-e2e.mjs # idem (8040 / 5200)
 ```
 
 ## Simulations d'exploitation
@@ -63,6 +68,7 @@ E2E_DIR=/tmp/auth-e2e CHROMIUM_PATH=… node scripts/api-auth-e2e.mjs   # démar
 | `api-e2e.mjs` (interface réelle, M1 à M6, robustesse, collisions d'id, refus, accusé de lecture, Collaborateur, session expirée) | 164 / 164 |
 | `api-smoke.mjs` | 31 / 31 |
 | `api-auth-e2e.mjs` | 22 / 22 |
+| `api-rights-e2e.mjs` (droits par processus : activation, pilote accepté / refusé, action métier, désactivation) | 25 / 25 |
 
 Non exécuté dans cet environnement : build Docker complet (le proxy réseau de
 l'environnement réécrit les certificats), appel réel à l'API Claude (clé non fournie).

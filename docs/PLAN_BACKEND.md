@@ -61,5 +61,8 @@ front en a (validation GED, soumission au DG, clôture de NC…).
   `/definir-mot-de-passe`).
 - Exploitation (fait) : réglages HTTPS, journaux JSON, erreurs JSON, e-mail, stockage S3
   optionnel, sondes `health` / `ready`, script de sauvegarde, schéma OpenAPI validé en CI.
-- Droits fins par processus (pilotes / copilotes), SSO éventuel.
+- Droits fins par processus (fait) : réglage d'organisme `droitsParProcessus` (désactivé
+  par défaut), pilotes / copilotes limités aux éléments de leurs processus
+  (`apps/core/scope.py`, règles dans `backend/README.md`), case dans Paramètres (mode API),
+  tests `test_process_rights.py`, e2e `scripts/api-rights-e2e.mjs`. Reste : SSO éventuel.
 - Supervision externe, RGPD / Code du numérique béninois (APDP).

@@ -229,16 +229,18 @@ class OrganisationSerializer(serializers.ModelSerializer):
 
 
 class SettingsSerializer(serializers.ModelSerializer):
-    """Réglages globaux du Persisted : activeNorms, auditorAccess, erpModule, onboarded."""
+    """Réglages globaux du Persisted : activeNorms, auditorAccess, erpModule, onboarded,
+    droitsParProcessus (droits fins par processus, facultatif : absent d'un PUT = inchangé)."""
 
     activeNorms = serializers.JSONField(source="active_norms")
     auditorAccess = serializers.BooleanField(source="auditor_access")
     erpModule = serializers.BooleanField(source="erp_module")
+    droitsParProcessus = serializers.BooleanField(source="droits_par_processus", required=False)
     uidSeq = serializers.IntegerField(source="uid_seq", read_only=True)
 
     class Meta:
         model = Organisation
-        fields = ["activeNorms", "auditorAccess", "erpModule", "onboarded", "uidSeq"]
+        fields = ["activeNorms", "auditorAccess", "erpModule", "onboarded", "droitsParProcessus", "uidSeq"]
 
     def validate_activeNorms(self, value):
         if not isinstance(value, list) or any(n not in NORM_IDS for n in value):
@@ -269,7 +271,9 @@ class OrganisationView(OrgObjectView):
 
 
 @extend_schema_view(
-    get=extend_schema(description="Réglages globaux : normes actives, accès auditeurs, module ERP…"),
+    get=extend_schema(
+        description="Réglages globaux : normes actives, accès auditeurs, module ERP, droits par processus…"
+    ),
     put=extend_schema(description="Remplace les réglages globaux (Responsable SM / Administrateur)."),
     patch=extend_schema(description="Modifie des réglages globaux (ex. `onboarded` en fin d'onboarding)."),
 )
@@ -448,7 +452,7 @@ def build_state(org: Organisation, request=None) -> dict:
     responses=OpenApiResponse(
         response=OpenApiTypes.OBJECT,
         description="{db: {<collection>: [...] | {...}, journal: [...]}, org, users, activeNorms, "
-        "auditorAccess, erpModule, onboarded, uidSeq}",
+        "auditorAccess, erpModule, onboarded, droitsParProcessus, uidSeq}",
     ),
 )
 @api_view(["GET"])
