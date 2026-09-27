@@ -71,7 +71,7 @@ E2E_DIR=/tmp/rights-e2e CHROMIUM_PATH=… node scripts/api-rights-e2e.mjs # idem
 | `api-e2e.mjs` (interface réelle, M1 à M6, robustesse, collisions d'id, refus, accusé de lecture, Collaborateur, session expirée) | 164 / 164 |
 | `api-smoke.mjs` | 31 / 31 |
 | `api-auth-e2e.mjs` | 22 / 22 |
-| `api-rights-e2e.mjs` (droits par processus : activation, pilote accepté / refusé, action métier, désactivation) | 25 / 25 |
+| `api-rights-e2e.mjs` (droits par processus : activation, pilote accepté / refusé, action métier, désactivation) | 23 contrôles OK, 0 échec |
 
 Non exécuté dans cet environnement : build Docker complet (le proxy réseau de
 l'environnement réécrit les certificats), appel réel à l'API Claude (clé non fournie).
