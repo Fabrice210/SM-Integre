@@ -102,6 +102,7 @@ export function PartiesPage() {
             onAdd={() => openForm('parties')}
             addLabel="Créer une fiche"
             exportName="Parties_interessees"
+            collection="parties"
           />
         ) : (
           <DataTable

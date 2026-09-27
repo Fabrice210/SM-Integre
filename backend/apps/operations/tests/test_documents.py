@@ -186,7 +186,7 @@ def _pdf(name="procedure.pdf", size=100):
     return SimpleUploadedFile(name, b"%PDF-1.4\n" + b"x" * size, content_type="application/pdf")
 
 
-def test_upload_and_download(client_for, media, demo_org):
+def test_upload_and_download(client_for, media, demo_org, django_capture_on_commit_callbacks):
     cedric = client_for("Cédric AGBODJAN")
     r = cedric.post(f"{URL}D4/fichier/", {"file": _pdf()}, format="multipart")
     assert r.status_code == 200, r.content
@@ -196,7 +196,8 @@ def test_upload_and_download(client_for, media, demo_org):
     assert r.status_code == 200
     assert b"".join(r.streaming_content).startswith(b"%PDF")
     # Remplacement : l'ancien fichier est supprimé, le nom reste une chaîne dans le JSON.
-    r = cedric.post(f"{URL}D4/fichier/", {"file": _pdf("v2.pdf")}, format="multipart")
+    with django_capture_on_commit_callbacks(execute=True):
+        r = cedric.post(f"{URL}D4/fichier/", {"file": _pdf("v2.pdf")}, format="multipart")
     assert r.json()["fichier"] == "v2.pdf"
     assert sorted(os.listdir(media / str(demo_org.pk) / "documents" / "D4")) == ["v2.pdf"]
     # Le champ n'est pas modifiable par le JSON.

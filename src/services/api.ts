@@ -1,5 +1,5 @@
 import type { User } from '../data/referentiels'
-import type { Persisted } from '../store/types'
+import type { AiSource, Persisted } from '../store/types'
 
 /**
  * Client de l'API Django (backend/). Le mode API n'est actif que si VITE_API_URL
@@ -82,6 +82,23 @@ function storeTokens(tokens: { access: string; refresh: string } | null, remembe
 /** Oublie les jetons (déconnexion). */
 export const clearTokens = () => storeTokens(null)
 
+/** Déconnexion : révoque le jeton de renouvellement côté serveur (au mieux), puis l'oublie. */
+export async function revokeTokens() {
+  const saved = readRefresh()
+  if (saved) {
+    try {
+      await request('/auth/logout/', {
+        method: 'POST',
+        body: { refresh: saved.token },
+        auth: false,
+      })
+    } catch {
+      /* hors ligne ou jeton déjà expiré : l'oubli local suffit */
+    }
+  }
+  clearTokens()
+}
+
 /** Une session serveur est ouverte (ou peut être reprise). */
 export const isAuthenticated = () => access !== null || readRefresh() !== null
 
@@ -90,9 +107,25 @@ export function onAuthLost(handler: () => void) {
   authLost = handler
 }
 
-/** Renouvelle le jeton d'accès ; false si la session est expirée. */
+/**
+ * Exécute `fn` sous un verrou partagé entre onglets (Web Locks) quand le navigateur
+ * le permet : avec la rotation + liste noire des jetons de renouvellement, deux
+ * renouvellements simultanés (deux onglets) avec le même jeton déconnecteraient l'un
+ * des deux. Sous verrou, chaque onglet relit le jeton le plus récent avant d'appeler.
+ */
+function exclusive<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined
+  return locks ? locks.request('sm:refresh', fn) : fn()
+}
+
+/**
+ * Renouvelle le jeton d'accès ; false si la session est expirée. Un seul
+ * renouvellement à la fois par onglet (promesse partagée), et entre onglets (verrou).
+ * Serveur injoignable, limitation de débit (429) ou erreur serveur : l'erreur est
+ * propagée et la session conservée (seul un refus du jeton la ferme).
+ */
 export function renew(): Promise<boolean> {
-  renewing ??= (async () => {
+  renewing ??= exclusive(async () => {
     const saved = readRefresh()
     if (!saved) return false
     const gen = tokenGen
@@ -107,11 +140,11 @@ export function renew(): Promise<boolean> {
       storeTokens({ access: t.access, refresh: t.refresh ?? saved.token }, saved.remember)
       return true
     } catch (e) {
-      if (e instanceof ApiError && e.status === 0) throw e
+      if (e instanceof ApiError && (e.status === 0 || e.status === 429 || e.status >= 500)) throw e
       if (gen === tokenGen) clearTokens()
       return false
     }
-  })().finally(() => (renewing = null))
+  }).finally(() => (renewing = null))
   return renewing
 }
 
@@ -122,6 +155,8 @@ interface RequestOptions {
   body?: unknown
   /** false : pas de jeton ni de renouvellement (connexion, renouvellement). */
   auth?: boolean
+  /** En-tête Accept (défaut : JSON). */
+  accept?: string
 }
 
 /** Message lisible d'une erreur DRF : {detail} ou {champ: [messages]}. */
@@ -138,8 +173,8 @@ function messageOf(status: number, data: unknown): string {
   return `Erreur ${status} du serveur.`
 }
 
-async function send(path: string, { method = 'GET', body, auth = true }: RequestOptions) {
-  const headers: Record<string, string> = { Accept: 'application/json' }
+async function send(path: string, { method = 'GET', body, auth = true, accept }: RequestOptions) {
+  const headers: Record<string, string> = { Accept: accept ?? 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (auth && access) headers.Authorization = `Bearer ${access}`
   try {
@@ -153,8 +188,8 @@ async function send(path: string, { method = 'GET', body, auth = true }: Request
   }
 }
 
-/** Appel JSON typé ; renouvelle le jeton une fois sur 401. */
-export async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+/** Envoie la requête ; renouvelle le jeton une fois sur 401. */
+async function authorized(path: string, opts: RequestOptions): Promise<Response> {
   const auth = opts.auth !== false
   if (auth && !access) await renew()
   let res = await send(path, opts)
@@ -163,6 +198,23 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
     // Renouvellement refusé, ou jeton neuf lui aussi refusé (compte désactivé…)
     if (res.status === 401) authLost?.()
   }
+  return res
+}
+
+async function fail(res: Response): Promise<never> {
+  const text = await res.text()
+  let data: unknown
+  try {
+    data = text ? JSON.parse(text) : undefined
+  } catch {
+    data = text
+  }
+  throw new ApiError(res.status, messageOf(res.status, data), data)
+}
+
+/** Appel JSON typé ; renouvelle le jeton une fois sur 401. */
+export async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+  const res = await authorized(path, opts)
   const text = await res.text()
   let data: unknown
   try {
@@ -187,5 +239,102 @@ export async function login(email: string, password: string, remember = true): P
   return r.user
 }
 
+/** Erreurs par champ d'une réponse DRF 400 (clés camelCase du serveur), messages joints. */
+export function fieldErrors(e: unknown): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (!(e instanceof ApiError) || !e.data || typeof e.data !== 'object') return out
+  for (const [k, v] of Object.entries(e.data as Record<string, unknown>)) {
+    if (k === 'detail') continue
+    out[k] = Array.isArray(v) ? v.map(String).join(' ') : typeof v === 'string' ? v : ''
+  }
+  return out
+}
+
+/** Options publiques de l'écran de connexion (GET /auth/config/). */
+export const fetchAuthConfig = () => request<{ signup: boolean }>('/auth/config/', { auth: false })
+
+/** Données de POST /auth/signup/ : nouvel organisme et son Responsable SM. */
+export interface SignupData {
+  organisation: string
+  sigle?: string
+  nom: string
+  email: string
+  password: string
+}
+
+/** Inscription d'un organisme ; conserve les jetons renvoyés (session ouverte). 404 : fermée. */
+export async function signup(data: SignupData): Promise<User> {
+  const r = await request<LoginResponse>('/auth/signup/', {
+    method: 'POST',
+    body: data,
+    auth: false,
+  })
+  storeTokens(r, true)
+  return r.user
+}
+
+/** Demande d'un lien de (ré)initialisation du mot de passe ; réponse neutre. */
+export const requestPasswordReset = (email: string) =>
+  request<{ detail: string }>('/auth/password/reset/', {
+    method: 'POST',
+    body: { email },
+    auth: false,
+  })
+
+/** Définition du mot de passe avec le jeton reçu par e-mail. */
+export const confirmPassword = (uid: string, token: string, password: string) =>
+  request<{ detail: string }>('/auth/password/confirm/', {
+    method: 'POST',
+    body: { uid, token, password },
+    auth: false,
+  })
+
+/** Réponse de POST /assistant/ask/ (sources : éléments cités de la `db` de l'organisme). */
+export interface AssistantAnswer {
+  reponse: string
+  sources: AiSource[]
+}
+
+/** Échange précédent transmis à l'assistant pour le suivi de la conversation. */
+export interface AssistantTurn {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+/**
+ * Question à l'assistant IA du serveur. Un 503 `{fallback: true}` signale que l'assistant
+ * distant n'est pas configuré ou indisponible : l'appelant garde alors son moteur local.
+ */
+export const askAssistant = (question: string, contexte: string, historique: AssistantTurn[]) =>
+  request<AssistantAnswer>('/assistant/ask/', {
+    method: 'POST',
+    body: { question, contexte, historique },
+  })
+
 export const fetchMe = () => request<User>('/auth/me/')
+
+/** Nom de fichier d'un en-tête Content-Disposition (filename*=UTF-8'' prioritaire). */
+function filenameOf(disposition: string | null): string | null {
+  if (!disposition) return null
+  const star = /filename\*=UTF-8''([^;]+)/i.exec(disposition)
+  if (star) {
+    try {
+      return decodeURIComponent(star[1])
+    } catch {
+      /* nom mal encodé : repli sur filename= */
+    }
+  }
+  return /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? null
+}
+
+/** Fichier produit par l'API (exports Excel / CSV / PDF), avec son nom. */
+export async function fetchFile(path: string): Promise<{ blob: Blob; filename: string }> {
+  const res = await authorized(path, { accept: '*/*' })
+  if (!res.ok) return fail(res)
+  const fallback = path.split('?')[0].split('/').pop() || 'export'
+  return {
+    blob: await res.blob(),
+    filename: filenameOf(res.headers.get('Content-Disposition')) ?? fallback,
+  }
+}
 export const fetchBootstrap = () => request<BootstrapPayload>('/bootstrap/')

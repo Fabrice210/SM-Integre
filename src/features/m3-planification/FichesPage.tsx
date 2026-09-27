@@ -54,6 +54,7 @@ export function FichesPage() {
           onAdd={() => openForm('fichesMaitrise')}
           addLabel="Créer une fiche"
           exportName="Fiches_maitrise_operationnelle"
+          collection="fichesMaitrise"
           norm={false}
         />
       </div>

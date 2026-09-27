@@ -15,7 +15,12 @@ export function procOwner(db: Seed, pid: string): string {
 /** taux(k) de l'original : atteinte de la cible d'un indicateur (0–100). */
 export function taux(k: Any): number {
   if (!k.valeur && k.valeur !== 0) return 0
-  const t = k.sens === 'baisse' ? (k.valeur <= k.cible ? 100 : (k.cible / k.valeur) * 100) : (k.valeur / k.cible) * 100
+  const t =
+    k.sens === 'baisse'
+      ? k.valeur <= k.cible
+        ? 100
+        : (k.cible / k.valeur) * 100
+      : (k.valeur / k.cible) * 100
   return Math.min(100, Math.round(t))
 }
 
@@ -23,7 +28,9 @@ export function taux(k: Any): number {
 export function competenceGaps(db: Seed) {
   const C = db.competences as Any
   return C.liste.map((c: string, i: number) => {
-    const nb = C.collaborateurs.filter((p: Any) => p.niveaux[i] > 0 && p.niveaux[i] < C.requis[c]).length
+    const nb = C.collaborateurs.filter(
+      (p: Any) => p.niveaux[i] > 0 && p.niveaux[i] < C.requis[c]
+    ).length
     const zero = C.collaborateurs.filter((p: Any) => p.niveaux[i] >= C.requis[c]).length
     return { comp: c, nb, couverts: zero, critique: zero < 2 }
   }) as { comp: string; nb: number; couverts: number; critique: boolean }[]

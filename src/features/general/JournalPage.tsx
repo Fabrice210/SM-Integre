@@ -38,6 +38,7 @@ export function JournalPage() {
             { k: 'u', l: 'Utilisateur', o: journalUsers },
           ]}
           exportName="Journal_audit"
+          collection="journal"
           norm={false}
         />
       </div>

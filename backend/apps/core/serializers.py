@@ -10,9 +10,11 @@ Sérialiseurs de base : l'API parle exactement le format du front.
 Le contenu des JSONField (tableaux imbriqués…) n'est jamais renommé.
 """
 
+import re
+
 from rest_framework import serializers
 
-from .models import NORM_IDS
+from .models import NORM_IDS, UID_REGEX
 from .naming import to_camel, to_snake
 
 HIDDEN = {"id", "organisation", "created_at", "updated_at", "position", "extra"}
@@ -65,12 +67,18 @@ class OrgModelSerializer(CamelSerializerMixin, serializers.ModelSerializer):
         return self.context["organisation"]
 
     def validate_normes(self, value):
-        bad = [n for n in value or [] if n not in NORM_IDS]
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Liste de normes attendue (ex. ["9001"]).')
+        bad = [str(n) for n in value if n not in NORM_IDS]
         if bad:
             raise serializers.ValidationError(f"Normes inconnues : {', '.join(bad)}")
         return value
 
     def validate_uid(self, value):
+        if not re.fullmatch(UID_REGEX, value):
+            raise serializers.ValidationError(
+                "Identifiant invalide : lettres, chiffres, « _ », « - » ou « . » (32 caractères au plus)."
+            )
         qs = self.Meta.model.objects.filter(organisation=self.organisation, uid=value)
         if self.instance is not None:
             qs = qs.exclude(pk=self.instance.pk)

@@ -264,10 +264,10 @@ class ReunionViewSet(OrgModelViewSet):
     @transaction.atomic
     def realiser(self, request, uid=None):
         """Marque la réunion réalisée : compte rendu, plan d'action et deux preuves."""
+        r = self.get_object()  # 404 avant toute validation du corps
         body = RealiserReunionSerializer(data=request.data)
         body.is_valid(raise_exception=True)
         d = body.validated_data
-        r = self.get_object()
         r.compte_rendu = d["compteRendu"]
         r.plan_action = d["planAction"]
         r.statut_plan = d["statutPlan"]

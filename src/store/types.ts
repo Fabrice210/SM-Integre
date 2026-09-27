@@ -29,6 +29,16 @@ export interface AiMessage {
   /** 1 = assistant, 0 = utilisateur (forme de l'original) */
   b: 0 | 1
   t: string
+  /** Sources citées par l'assistant distant (mode API) : éléments de la `db` de l'organisme. */
+  src?: AiSource[]
+  /** Réponse en cours de calcul par le serveur (mode API). */
+  wait?: boolean
+}
+
+export interface AiSource {
+  collection: string
+  id: string
+  libelle: string
 }
 
 /** État d'interface (équivalent des champs de S non métier) — non sauvegardé, sauf mention. */

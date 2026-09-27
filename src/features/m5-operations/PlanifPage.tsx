@@ -91,6 +91,7 @@ export function PlanifPage() {
           onAdd={() => openForm('plansOps')}
           addLabel="Recenser un plan d'action"
           exportName="Planification_operationnelle"
+          collection="plansOps"
           norm={false}
         />
       </div>

@@ -100,6 +100,7 @@ export function ProcessusPage() {
             onAdd={() => openForm('processus')}
             addLabel="Créer une fiche processus"
             exportName="Fiches_processus"
+            collection="processus"
           />
         </div>
       )}

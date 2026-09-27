@@ -61,6 +61,14 @@ def _payload(request) -> dict:
     return dict(data)
 
 
+def _text(request, key: str, default=None):
+    """Paramètre texte facultatif du corps : tout autre type donne une erreur 400."""
+    value = request.data.get(key, default)
+    if value is not None and not isinstance(value, str):
+        raise serializers.ValidationError({key: "Texte attendu."})
+    return value
+
+
 class _PlanifViewSet(OrgModelViewSet):
     def _save(self, obj, fields=None):
         """Enregistre une modification faite par une action et la trace (AuditLog)."""
@@ -98,6 +106,7 @@ class _EvaluationMixin:
 
 class ObjectifViewSet(_EvaluationMixin, _PlanifViewSet):
     EVAL_MOD = "Objectifs"
+    list_body_actions = ("import_objectifs",)
 
     @action(detail=True, methods=["post"], url_path="actions")
     @transaction.atomic
@@ -225,10 +234,10 @@ class TexteViewSet(_PlanifViewSet):
         """{mode: 'dest' | 'proc', destinataire?, processus?}"""
         obj = self.get_object()
         org = request.user.organisation
-        mode = request.data.get("mode", "dest")
+        mode = _text(request, "mode", "dest")
         if mode not in ("dest", "proc"):
             raise serializers.ValidationError({"mode": "Valeur attendue : 'dest' ou 'proc'."})
-        proc = request.data.get("processus") or "—"
+        proc = _text(request, "processus") or "—"
         if mode == "proc" and proc != "—":
             if (
                 is_registered("processus")
@@ -237,7 +246,7 @@ class TexteViewSet(_PlanifViewSet):
                 raise serializers.ValidationError({"processus": f"Processus inconnu : {proc}"})
             cible = "tous les intéressés du processus " + proc_name(org, proc)
         else:
-            cible = request.data.get("destinataire") or "destinataire non précisé"
+            cible = _text(request, "destinataire") or "destinataire non précisé"
         obj.diffuse = True
         obj.statut_diff = "Diffusé"
         obj.destinataire_diff = cible
@@ -314,7 +323,7 @@ class DeclarationViewSet(_PlanifViewSet):
                 {"detail": f"Déclaration « {d.statut} » : seule une déclaration soumise peut être décidée."},
                 status=status.HTTP_409_CONFLICT,
             )
-        commentaire = (request.data.get("commentaire") or "").strip()
+        commentaire = (_text(request, "commentaire") or "").strip()
         if decision == "valider":
             d.statut = m.Declaration.Statut.VALIDEE
             d.commentaire_dg = (

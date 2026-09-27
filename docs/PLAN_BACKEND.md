@@ -48,12 +48,18 @@ front en a (validation GED, soumission au DG, clôture de NC…).
 ### Phase 2 — Fonctions serveur
 - Pièces jointes (preuves, documents GED) : upload, stockage (S3 compatible), droits.
 - Tableau de bord et alertes calculés côté serveur (échéances, retards, mandats).
-- Exports (PDF / Excel) côté serveur.
-- Notifications e-mail (échéances, validations en attente) via tâches planifiées.
+- Exports (PDF / Excel / CSV) côté serveur — fait : `apps/exports` (`/api/v1/exports/…`).
+- Notifications e-mail (échéances, validations en attente) via tâches planifiées — fait :
+  `apps/notifications`, commande `send_alerts`, service `scheduler`, préférences
+  `/api/v1/auth/me/notifications/`.
 - Assistant IA branché sur un vrai modèle (API Claude), avec les données de
   l'organisme comme contexte et validation humaine des propositions.
 
 ### Phase 3 — Production
-- Onboarding multi-organismes (création d'organisme, invitation d'utilisateurs).
+- Onboarding multi-organismes (fait côté API) : inscription `ALLOW_SIGNUP`, invitation
+  d'utilisateurs, mot de passe par lien. Reste : écrans du front (inscription, page
+  `/definir-mot-de-passe`).
+- Exploitation (fait) : réglages HTTPS, journaux JSON, erreurs JSON, e-mail, stockage S3
+  optionnel, sondes `health` / `ready`, script de sauvegarde, schéma OpenAPI validé en CI.
 - Droits fins par processus (pilotes / copilotes), SSO éventuel.
-- Sauvegardes, supervision, RGPD / Code du numérique béninois (APDP).
+- Supervision externe, RGPD / Code du numérique béninois (APDP).

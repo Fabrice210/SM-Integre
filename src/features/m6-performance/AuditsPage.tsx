@@ -76,6 +76,7 @@ export function AuditsPage() {
             onRowClick={(i) => openForm('auditeurs', i)}
             norm={false}
             exportName="Auditeurs"
+            collection="auditeurs"
           />
         </div>
       </>
@@ -111,6 +112,7 @@ export function AuditsPage() {
             onAdd={() => openForm('audits')}
             addLabel="Planifier un audit"
             exportName="Programme_audit"
+            collection="audits"
           />
         </div>
       </>

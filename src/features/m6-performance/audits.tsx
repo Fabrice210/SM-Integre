@@ -9,7 +9,8 @@ import { readForm } from '../../forms/formControllers'
 import type { FieldDef, FormDef } from '../../forms/types'
 import { days, fd } from '../../lib/dates'
 import { procName, procOpts, procShort } from '../../lib/lookups'
-import { printDoc } from '../../services/exports'
+import { API_MODE } from '../../services/api'
+import { printDoc, serverDownload } from '../../services/exports'
 import { procOwner } from '../../services/metrics'
 import { hist, logAct, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
@@ -246,7 +247,7 @@ export function audDetail(id: string) {
   if (!x) return
   const idx = AUD_ST.indexOf(x.statut)
   const d = days(x.date) as number
-  const acts = (
+  const statusActs = (
     {
       Planifié: (
         <>
@@ -286,6 +287,17 @@ export function audDetail(id: string) {
       Clôturé: null,
     } as Record<string, ReactNode>
   )[x.statut]
+  // Mode API : rapport d'audit PDF produit par le serveur
+  const acts = API_MODE ? (
+    <>
+      <button className="btn" onClick={() => void serverDownload(`/exports/rapport-audit/${encodeURIComponent(id)}.pdf`)}>
+        <Icon name="doc" size={15} /> Rapport PDF
+      </button>
+      {statusActs}
+    </>
+  ) : (
+    statusActs
+  )
   openDetail({
     coll: 'audits',
     id,

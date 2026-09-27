@@ -22,6 +22,17 @@ services:
       retries: 10
       start_period: 10s
 
+  # Cache partagé entre les workers gunicorn (limites de débit, jetons).
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -30,8 +41,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-sm}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sm_integre}
+      REDIS_URL: redis://redis:6379/0
+      GED_MAX_UPLOAD_SIZE: ${GED_MAX_UPLOAD_SIZE:-20971520}
       SECRET_KEY: ${SECRET_KEY:?Définir SECRET_KEY dans .env}
       DEBUG: ${DEBUG:-false}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
@@ -41,11 +56,77 @@ services:
       JWT_ACCESS_MINUTES: ${JWT_ACCESS_MINUTES:-30}
       JWT_REFRESH_DAYS: ${JWT_REFRESH_DAYS:-7}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+      # Assistant IA (API Claude) : sans clé, le front garde son moteur local.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ASSISTANT_MODEL: ${ASSISTANT_MODEL:-}
+      ASSISTANT_EFFORT: ${ASSISTANT_EFFORT-medium}
+      ASSISTANT_RATE: ${ASSISTANT_RATE:-30/hour}
+      ASSISTANT_TIMEOUT: ${ASSISTANT_TIMEOUT:-45}
+      # HTTPS : la redirection est laissée au proxy TLS placé devant (cf. docs/DEPLOIEMENT.md).
+      SECURE_SSL_REDIRECT: ${SECURE_SSL_REDIRECT:-false}
+      SECURE_HSTS_SECONDS: ${SECURE_HSTS_SECONDS:-3600}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      # Onboarding, e-mails (sans EMAIL_HOST : e-mails écrits dans les journaux)
+      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-false}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-true}
+      DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-SM Intégré <no-reply@localhost>}"
+      # Pièces jointes sur S3 (ou compatible) si le bucket est défini, sinon volume `media`
+      AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME:-}
+      AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME:-}
+      AWS_S3_ENDPOINT_URL: ${AWS_S3_ENDPOINT_URL:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+    # Disponibilité (readiness) : base jointe et migrations appliquées ; le front attend cet état.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready/', timeout=4)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     volumes:
       - media:/app/media
     # Pas de port publié : l'API est jointe via le proxy nginx du front.
     expose:
       - "8000"
+
+  # Récapitulatif e-mail quotidien des alertes (manage.py send_alerts), même image que l'API.
+  scheduler:
+    image: sm-integre-backend:latest
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-sm}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sm_integre}
+      SECRET_KEY: ${SECRET_KEY:?Définir SECRET_KEY dans .env}
+      DEBUG: ${DEBUG:-false}
+      MIGRATE_ON_START: "0"
+      REDIS_URL: redis://redis:6379/0
+      ALERTS_TIME: ${ALERTS_TIME:-06:00}
+      ALERTS_ON_START: ${ALERTS_ON_START:-0}
+      FRONTEND_URL: ${FRONTEND_URL:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-true}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-false}
+      DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-SM Intégré <no-reply@localhost>}"
+    command: ["sh", "/app/scheduler.sh"]
+    # Pas de serveur HTTP : le contrôle de santé de l'image API ne s'applique pas.
+    healthcheck:
+      disable: true
 
   frontend:
     build:

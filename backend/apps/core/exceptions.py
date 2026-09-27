@@ -7,7 +7,11 @@ from .naming import to_camel
 
 def _camelize(detail):
     if isinstance(detail, dict):
-        return {("id" if k == "uid" else to_camel(k)): _camelize(v) for k, v in detail.items()}
+        # Les erreurs d'une liste imbriquée sont indexées par position (clés entières).
+        return {
+            ("id" if k == "uid" else to_camel(k) if isinstance(k, str) else k): _camelize(v)
+            for k, v in detail.items()
+        }
     if isinstance(detail, list):
         return [_camelize(v) for v in detail]
     return detail

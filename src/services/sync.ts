@@ -32,8 +32,8 @@ import { ApiError, isAuthenticated, request } from './api'
  * de la file (sinon l'ordre entre collections — références — serait bouleversé).
  *
  * Erreurs :
- *   - serveur injoignable : l'écriture reste en tête de file et est rejouée (délai
- *     croissant) — rien n'est perdu ni envoyé dans le désordre ;
+ *   - serveur injoignable ou limitation de débit (429) : l'écriture reste en tête de
+ *     file et est rejouée (délai croissant) — rien n'est perdu ni envoyé dans le désordre ;
  *   - refus (4xx : conflit, validation, droits) ou erreur serveur (5xx) : les écritures
  *     du même update encore en attente (effets liés, journal) sont abandonnées, l'erreur
  *     est affichée et l'état est rechargé (bootstrap) une fois la file vide ;
@@ -376,6 +376,12 @@ async function drain() {
       if (gen === generation) adopt(w, data)
     } catch (e) {
       if (gen !== generation) return
+      if (e instanceof ApiError && e.status === 429) {
+        // Limitation de débit (ex. renouvellement du jeton) : on patiente, puis on rejoue.
+        queue.unshift(w)
+        await sleep(Math.min(30000, 2000 * 2 ** attempt++))
+        continue
+      }
       if (e instanceof ApiError && e.status === 0) {
         // Serveur injoignable : on rejoue la même écriture plus tard, sans rien perdre.
         queue.unshift(w)

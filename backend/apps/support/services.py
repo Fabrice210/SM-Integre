@@ -33,7 +33,8 @@ def parse_matrix_csv(text: str, nb_competences: int) -> list[dict]:
 
     Séparateur ';' ou ','. Niveaux absents ou invalides -> 0, bornés à 0..4.
     """
-    text = text.lstrip("﻿")
+    # Caractère NUL retiré : csv le refuse (erreur serveur) et PostgreSQL aussi.
+    text = text.lstrip("﻿").replace("\x00", "")
     lines = [line for line in text.splitlines() if line.strip()]
     rows = []
     for line in lines[1:]:
@@ -45,7 +46,7 @@ def parse_matrix_csv(text: str, nb_competences: int) -> list[dict]:
             raw = cells[k + 2].strip() if k + 2 < len(cells) else ""
             try:
                 v = int(float(raw))
-            except ValueError:
+            except (ValueError, OverflowError):  # « abc », « inf »… -> 0
                 v = 0
             niveaux.append(max(0, min(4, v)))
         rows.append({"nom": cells[0].strip(), "direction": cells[1].strip(), "niveaux": niveaux})

@@ -175,6 +175,7 @@ export function PolitiquePage() {
           onAdd={() => openForm('preuvesCom')}
           addLabel="Associer une preuve"
           exportName="Preuves_communication_politique"
+          collection="preuvesCom"
         />
       </div>
     </>

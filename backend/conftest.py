@@ -45,3 +45,15 @@ def api_admin(demo_org):
 @pytest.fixture(autouse=True)
 def _fast_password_hasher(settings):
     settings.PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+
+@pytest.fixture(autouse=True)
+def _test_environment(settings):
+    """Client de test en HTTP (pas de redirection HTTPS), e-mails en mémoire, quotas remis à zéro."""
+    from django.core.cache import cache
+
+    settings.SECURE_SSL_REDIRECT = False
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    cache.clear()
+    yield
+    cache.clear()

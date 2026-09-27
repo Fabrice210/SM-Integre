@@ -113,8 +113,26 @@ async function modalReady() {
   await settle(120)
 }
 
+/**
+ * Navigation dans l'application (routeur, sans recharger la page) : un rechargement
+ * renouvelle le jeton (rotation + liste noire côté serveur, débit limité), on les
+ * réserve aux scénarios de rechargement.
+ */
 async function goto(pageId) {
-  await page.goto(BASE + '/' + pageId)
+  const inApp = await page
+    .evaluate(
+      (id) =>
+        import('/src/app/routerRef.ts').then((m) => {
+          if (!m.routerRef.navigate || location.pathname === '/login') return false
+          m.routerRef.navigate('/' + id)
+          return true
+        }),
+      pageId
+    )
+    .catch(() => false)
+  if (!inApp) await page.goto(BASE + '/' + pageId)
+  await page.waitForURL(new RegExp('/' + pageId + '$'))
+  await page.keyboard.press('Escape').catch(() => {})
   await page.waitForSelector('.content')
 }
 

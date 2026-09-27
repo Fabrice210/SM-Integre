@@ -62,6 +62,13 @@ export async function apiLogin(email: string, password: string, remember: boolea
   return user
 }
 
+/** Inscription d'un organisme : jetons renvoyés, puis état (vierge) du serveur. */
+export async function apiSignup(data: api.SignupData): Promise<User> {
+  const user = await api.signup(data)
+  hydrate(await api.fetchBootstrap())
+  return user
+}
+
 /** Au démarrage : reprend la session si le jeton de renouvellement est encore valide. */
 export async function restoreSession() {
   try {
@@ -84,12 +91,17 @@ function forget() {
 
 /**
  * Déconnexion : envoie les dernières écritures (journal ; 5 s au plus si le serveur
- * est injoignable), puis oublie jetons et données.
+ * est injoignable), révoque le jeton de renouvellement, puis oublie jetons et données.
  */
 export function endSession(): Promise<void> {
   const e = epoch
   ending ??= flush(5000)
-    .then(() => void (e === epoch && forget()))
+    .then(async () => {
+      if (e !== epoch) return // session déjà perdue entre-temps
+      discard()
+      await api.revokeTokens()
+      if (e === epoch) forget()
+    })
     .finally(() => (ending = null))
   return ending
 }

@@ -91,6 +91,7 @@ export function VeillePage() {
           onAdd={() => openForm('textes')}
           addLabel="Ajouter un texte"
           exportName="Registre_reglementaire"
+          collection="textes"
         />
       </div>
     )
@@ -141,6 +142,7 @@ export function VeillePage() {
           onAdd={() => openForm('rapportsConf')}
           addLabel="Générer un rapport de conformité"
           exportName="Rapports_conformite"
+          collection="rapportsConf"
         />
         {soumises.length ? (
           <div className="note warn" style={{ marginTop: 12 }}>
