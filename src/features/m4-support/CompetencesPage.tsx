@@ -207,6 +207,7 @@ export function CompetencesPage() {
           onAdd={() => openForm('savoirs')}
           addLabel="Ajouter un savoir critique"
           exportName="Savoirs_critiques"
+          collection="savoirs"
         />
       </div>
     )
@@ -249,6 +250,7 @@ export function CompetencesPage() {
           onAdd={() => openForm('formations')}
           addLabel="Planifier une session"
           exportName="Plan_de_formation"
+          collection="formations"
         />
       </div>
     )

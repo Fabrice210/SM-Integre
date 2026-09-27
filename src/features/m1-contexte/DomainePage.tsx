@@ -37,6 +37,7 @@ function SitesTab() {
       onAdd={() => openForm('sites')}
       addLabel="Ajouter un site"
       exportName="Sites"
+      collection="sites"
       norm={false}
     />
   )
@@ -63,6 +64,7 @@ function ActTab() {
       onAdd={() => openForm('activites')}
       addLabel="Ajouter un élément"
       exportName="Activites_couvertes"
+      collection="activites"
       norm={false}
     />
   )
@@ -99,6 +101,7 @@ function NormTab() {
       onAdd={() => openForm('applicabilite')}
       addLabel="Ajouter une exigence"
       exportName="Applicabilite_normative"
+      collection="applicabilite"
       norm={false}
     />
   )

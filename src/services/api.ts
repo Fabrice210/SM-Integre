@@ -116,6 +116,8 @@ interface RequestOptions {
   body?: unknown
   /** false : pas de jeton ni de renouvellement (connexion, renouvellement). */
   auth?: boolean
+  /** En-tête Accept (défaut : JSON). */
+  accept?: string
 }
 
 /** Message lisible d'une erreur DRF : {detail} ou {champ: [messages]}. */
@@ -132,8 +134,8 @@ function messageOf(status: number, data: unknown): string {
   return `Erreur ${status} du serveur.`
 }
 
-async function send(path: string, { method = 'GET', body, auth = true }: RequestOptions) {
-  const headers: Record<string, string> = { Accept: 'application/json' }
+async function send(path: string, { method = 'GET', body, auth = true, accept }: RequestOptions) {
+  const headers: Record<string, string> = { Accept: accept ?? 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (auth && access) headers.Authorization = `Bearer ${access}`
   try {
@@ -147,8 +149,8 @@ async function send(path: string, { method = 'GET', body, auth = true }: Request
   }
 }
 
-/** Appel JSON typé ; renouvelle le jeton une fois sur 401. */
-export async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+/** Envoie la requête ; renouvelle le jeton une fois sur 401. */
+async function authorized(path: string, opts: RequestOptions): Promise<Response> {
   const auth = opts.auth !== false
   if (auth && !access) await renew()
   let res = await send(path, opts)
@@ -156,6 +158,23 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
     if (await renew()) res = await send(path, opts)
     else authLost?.()
   }
+  return res
+}
+
+async function fail(res: Response): Promise<never> {
+  const text = await res.text()
+  let data: unknown
+  try {
+    data = text ? JSON.parse(text) : undefined
+  } catch {
+    data = text
+  }
+  throw new ApiError(res.status, messageOf(res.status, data), data)
+}
+
+/** Appel JSON typé ; renouvelle le jeton une fois sur 401. */
+export async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+  const res = await authorized(path, opts)
   const text = await res.text()
   let data: unknown
   try {
@@ -203,4 +222,26 @@ export const askAssistant = (question: string, contexte: string, historique: Ass
   })
 
 export const fetchMe = () => request<User>('/auth/me/')
+
+/** Nom de fichier d'un en-tête Content-Disposition (filename*=UTF-8'' prioritaire). */
+function filenameOf(disposition: string | null): string | null {
+  if (!disposition) return null
+  const star = /filename\*=UTF-8''([^;]+)/i.exec(disposition)
+  if (star) {
+    try {
+      return decodeURIComponent(star[1])
+    } catch {
+      /* nom mal encodé : repli sur filename= */
+    }
+  }
+  return /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? null
+}
+
+/** Fichier produit par l'API (exports Excel / CSV / PDF), avec son nom. */
+export async function fetchFile(path: string): Promise<{ blob: Blob; filename: string }> {
+  const res = await authorized(path, { accept: '*/*' })
+  if (!res.ok) return fail(res)
+  const fallback = path.split('?')[0].split('/').pop() || 'export'
+  return { blob: await res.blob(), filename: filenameOf(res.headers.get('Content-Disposition')) ?? fallback }
+}
 export const fetchBootstrap = () => request<BootstrapPayload>('/bootstrap/')

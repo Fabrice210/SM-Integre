@@ -105,6 +105,7 @@ function FichesPoste() {
         onAdd={() => openForm('postes')}
         addLabel="Créer une fiche de poste"
         exportName="Fiches_de_poste"
+        collection="postes"
         norm={false}
       />
     </div>

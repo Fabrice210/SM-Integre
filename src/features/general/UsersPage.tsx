@@ -124,6 +124,7 @@ export function UsersPage() {
             onAdd={() => openForm('users')}
             addLabel="Inviter un utilisateur"
             exportName="Utilisateurs"
+            collection="users"
             norm={false}
           />
         </div>

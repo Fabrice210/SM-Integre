@@ -48,8 +48,10 @@ front en a (validation GED, soumission au DG, clôture de NC…).
 ### Phase 2 — Fonctions serveur
 - Pièces jointes (preuves, documents GED) : upload, stockage (S3 compatible), droits.
 - Tableau de bord et alertes calculés côté serveur (échéances, retards, mandats).
-- Exports (PDF / Excel) côté serveur.
-- Notifications e-mail (échéances, validations en attente) via tâches planifiées.
+- Exports (PDF / Excel / CSV) côté serveur — fait : `apps/exports` (`/api/v1/exports/…`).
+- Notifications e-mail (échéances, validations en attente) via tâches planifiées — fait :
+  `apps/notifications`, commande `send_alerts`, service `scheduler`, préférences
+  `/api/v1/auth/me/notifications/`.
 - Assistant IA branché sur un vrai modèle (API Claude), avec les données de
   l'organisme comme contexte et validation humaine des propositions.
 

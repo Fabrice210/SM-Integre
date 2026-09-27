@@ -88,6 +88,7 @@ export function RisquesPage() {
           onAdd={() => openForm('risques')}
           addLabel="Créer une fiche risque"
           exportName="Registre_risques"
+          collection="risques"
           extra={
             activeNorms.includes('45001') ? (
               <button
@@ -147,6 +148,7 @@ export function RisquesPage() {
           onAdd={() => openForm('opportunites')}
           addLabel="Créer une fiche opportunité"
           exportName="Registre_opportunites"
+          collection="opportunites"
         />
       </div>
     )

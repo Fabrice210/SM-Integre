@@ -101,6 +101,7 @@ export function NcPage() {
             { k: 'processus', l: 'Processus', o: procOpts },
           ]}
           exportName="Non_conformites"
+          collection={t === 'all' ? 'ncs' : undefined}
           extra={
             <button className="btn sm" onClick={addSource}>
               <Icon name="plus" size={14} /> Source

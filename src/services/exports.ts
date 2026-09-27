@@ -1,4 +1,5 @@
 import { NORMS } from '../data/referentiels'
+import { API_MODE, ApiError, fetchFile } from './api'
 import { fd, iso, TODAY } from '../lib/dates'
 import { currentUser, logAct, update, useApp } from '../store/useApp'
 import { toast } from '../store/useOverlays'
@@ -15,7 +16,11 @@ export interface ExportableTable {
 export const tableRegistry: Record<string, ExportableTable> = {}
 
 export function download(name: string, content: string, type: string) {
-  const b = new Blob([content], { type })
+  saveBlob(name, new Blob([content], { type }))
+}
+
+/** Enregistre un fichier côté navigateur (lien de téléchargement temporaire). */
+export function saveBlob(name: string, b: Blob) {
   const a = document.createElement('a')
   a.href = URL.createObjectURL(b)
   a.download = name
@@ -80,4 +85,53 @@ export function exportPage(title: string) {
   const clone = c.cloneNode(true) as HTMLElement
   clone.querySelectorAll('button,.toolbar,.tabs,select,input').forEach((x) => x.remove())
   printDoc(title, clone.innerHTML)
+}
+
+/**
+ * Mode API : télécharge l'export produit par le serveur (`/exports/…`, avec le jeton JWT).
+ * Le serveur trace lui-même l'export au journal. Renvoie false hors mode API ou en cas
+ * d'échec : l'appelant retombe alors sur l'export local.
+ */
+export async function serverDownload(path: string): Promise<boolean> {
+  if (!API_MODE) return false
+  try {
+    const { blob, filename } = await fetchFile(path)
+    saveBlob(filename, blob)
+    toast(`Export « ${filename} » généré par le serveur.`)
+    return true
+  } catch (e) {
+    const why = e instanceof ApiError ? e.message : 'erreur inconnue'
+    toast(`Export serveur indisponible (${why}) : export local.`, 'warn')
+    return false
+  }
+}
+
+/** Chemin d'export serveur d'une collection, avec le filtre de norme courant. */
+export function collectionExportPath(collection: string, fmt: 'xlsx' | 'csv' | 'pdf', norm?: string) {
+  const q = norm && norm in NORMS ? `?norme=${encodeURIComponent(norm)}` : ''
+  return `/exports/${collection}.${fmt}${q}`
+}
+
+/**
+ * En mode API, `path` est téléchargé depuis le serveur ; sinon (ou en cas d'échec)
+ * `local()` produit l'export du navigateur. Hors mode API, `local()` est appelé tout de
+ * suite, dans le geste utilisateur (fenêtre d'impression non bloquée).
+ */
+export function exportVia(path: string | null, local: () => void) {
+  if (!API_MODE || !path) return local()
+  void serverDownload(path).then((ok) => {
+    if (!ok) local()
+  })
+}
+
+/** Pages dont le bouton « Exporter » a une version serveur. */
+const SERVER_PAGES: Record<string, (norm: string) => string> = {
+  dashboard: (norm) => `/exports/tableau-de-bord.pdf?norme=${encodeURIComponent(norm)}`,
+  'm6-registre': (norm) => collectionExportPath('registre', 'pdf', norm),
+}
+
+/** Bouton « Exporter » de la barre du haut. */
+export function exportCurrentPage(page: string, title: string) {
+  const server = SERVER_PAGES[page]
+  exportVia(server ? server(useApp.getState().ui.norm) : null, () => exportPage(title))
 }

@@ -85,6 +85,7 @@ export function ConsultationPage() {
         onAdd={() => openForm('representants')}
         addLabel="Ajouter un représentant"
         exportName="Representants"
+        collection="representants"
       />
     )
   if (t === 'com')
@@ -110,6 +111,7 @@ export function ConsultationPage() {
         onAdd={() => openForm('comite')}
         addLabel="Ajouter un membre"
         exportName="Comite_HS"
+        collection="comite"
       />
     )
   if (t === 'reu')
@@ -129,6 +131,7 @@ export function ConsultationPage() {
         onAdd={() => openForm('reunions')}
         addLabel="Planifier une réunion"
         exportName="Reunions_consultation"
+        collection="reunions"
         extra={
           <button className="btn sm" onClick={planifierAnnee}>
             <Icon name="cal" size={14} /> Planification globale de l'année

@@ -78,6 +78,7 @@ export function SurveillancePage() {
           onAdd={() => openForm('indicateurs')}
           addLabel="Définir un indicateur"
           exportName="Indicateurs"
+          collection="indicateurs"
           norm={false}
         />
       </div>
@@ -173,6 +174,7 @@ export function SurveillancePage() {
           onAdd={() => openForm('prestataires')}
           addLabel="Ajouter un intervenant"
           exportName="Intervenants_externes"
+          collection="prestataires"
           norm={false}
         />
       </div>

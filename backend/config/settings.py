@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     "apps.performance",  # Module 6 — Performance & amélioration
     "apps.pilotage",  # Pages transverses : couverture normative, tableau de bord…
     "apps.assistant",  # Assistant IA (API Claude)
+    "apps.exports",  # Exports Excel / CSV / PDF côté serveur
+    "apps.notifications",  # Notifications e-mail (alertes, validations en attente)
 ]
 
 MIDDLEWARE = [

@@ -3,7 +3,7 @@ import { pageTitle } from '../../app/pages'
 import { MOD_FULL, NORMS } from '../../data/referentiels'
 import { initials } from '../../lib/format'
 import { computeAlerts, pendingValidations } from '../../services/alerts'
-import { exportPage } from '../../services/exports'
+import { exportCurrentPage } from '../../services/exports'
 import { currentUser, update, useApp } from '../../store/useApp'
 import type { NormFilter } from '../../store/types'
 import { Icon } from '../ui/Icon'
@@ -77,7 +77,7 @@ export function Topbar({ page }: { page: string }) {
           <small>{user.roles[0]}</small>
         </span>
       </button>
-      <button className="btn primary" onClick={() => exportPage(pageTitle(page))}>
+      <button className="btn primary" onClick={() => exportCurrentPage(page, pageTitle(page))}>
         <Icon name="share" size={15} /> Exporter
       </button>
     </header>
