@@ -6,7 +6,75 @@ import { useTabs } from '../../components/ui/Tabs'
 import { DIRECTIONS, ROLES, type User } from '../../data/referentiels'
 import { openForm } from '../../forms/crud'
 import { initials } from '../../lib/format'
-import { useApp } from '../../store/useApp'
+import { API_MODE, ApiError } from '../../services/api'
+import { anonymiseUser } from '../../services/session'
+import { currentUser, useApp } from '../../store/useApp'
+import { closeModal, openModal, toast } from '../../store/useOverlays'
+
+const ADMIN_ROLES = ['Responsable SM', 'Administrateur système']
+
+/** Compte déjà anonymisé par le serveur (e-mail neutre non routable). */
+const isAnonymised = (u: User) => u.email.endsWith('@anonymise.invalid')
+
+/**
+ * Mode API : droit à l'effacement exercé par un administrateur (confirmation, option de
+ * remplacement du nom dans les données, puis rechargement de l'état du serveur).
+ */
+function confirmAnonymise(u: User) {
+  let busy = false
+  openModal(
+    {
+      title: 'Anonymiser ce compte ?',
+      body: (
+        <>
+          <p>
+            Le compte de « {u.nom} » sera désactivé ; son nom, son e-mail, son poste et sa direction
+            seront remplacés par des valeurs neutres, ses sessions révoquées et ses préférences de
+            notification supprimées. Cette action est irréversible et tracée dans le journal
+            d'audit.
+          </p>
+          <label className="toggle">
+            <input type="checkbox" id="anonReplace" />
+            <span className="small">
+              Remplacer aussi son nom dans les données du registre, le journal et la trace technique
+              (sinon l'historique conserve son nom pour la traçabilité ISO)
+            </span>
+          </label>
+        </>
+      ),
+      foot: (
+        <>
+          <button className="btn" onClick={() => closeModal('modal2')}>
+            Annuler
+          </button>
+          <button
+            className="btn danger"
+            onClick={() => {
+              if (busy) return
+              busy = true
+              const replace = (document.getElementById('anonReplace') as HTMLInputElement).checked
+              anonymiseUser(u.id, replace)
+                .then((r) => {
+                  closeModal('modal2')
+                  toast(`Compte anonymisé : ${r.nom}.`)
+                })
+                .catch((e) => {
+                  busy = false
+                  toast(
+                    `Anonymisation impossible : ${e instanceof ApiError ? e.message : 'erreur inconnue'}.`,
+                    'warn'
+                  )
+                })
+            }}
+          >
+            <Icon name="trash" size={15} /> Anonymiser
+          </button>
+        </>
+      ),
+    },
+    'modal2'
+  )
+}
 
 const PROFILS = [
   [
@@ -56,6 +124,9 @@ const PROFILS = [
 /** PAGES.users de l'original : utilisateurs et matrice des droits. */
 export function UsersPage() {
   const users = useApp((s) => s.users)
+  const me = useApp((s) => (API_MODE ? currentUser(s) : null))
+  const canAnonymise = (u: User) =>
+    !!me && me.roles.some((r) => ADMIN_ROLES.includes(r)) && u.id !== me.id && !isAnonymised(u)
   const [t, tb] = useTabs('users', [
     ['list', 'Utilisateurs'],
     ['matrix', 'Matrice des droits'],
@@ -102,17 +173,35 @@ export function UsersPage() {
               },
               {
                 l: '',
-                r: (u) => (
-                  <button
-                    className="btn sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      openForm('users', u.id)
-                    }}
-                  >
-                    <Icon name="edit" size={13} /> Modifier
-                  </button>
-                ),
+                r: (u) => {
+                  const edit = (
+                    <button
+                      className="btn sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openForm('users', u.id)
+                      }}
+                    >
+                      <Icon name="edit" size={13} /> Modifier
+                    </button>
+                  )
+                  if (!canAnonymise(u)) return edit
+                  return (
+                    <div className="btn-row">
+                      {edit}
+                      <button
+                        className="btn sm danger"
+                        title="Droit à l'effacement : anonymiser ce compte"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          confirmAnonymise(u)
+                        }}
+                      >
+                        <Icon name="trash" size={13} /> Anonymiser
+                      </button>
+                    </div>
+                  )
+                },
               },
             ]}
             rows={users}

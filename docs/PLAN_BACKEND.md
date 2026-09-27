@@ -52,17 +52,21 @@ front en a (validation GED, soumission au DG, clôture de NC…).
 - Notifications e-mail (échéances, validations en attente) via tâches planifiées — fait :
   `apps/notifications`, commande `send_alerts`, service `scheduler`, préférences
   `/api/v1/auth/me/notifications/`.
-- Assistant IA branché sur un vrai modèle (API Claude), avec les données de
-  l'organisme comme contexte et validation humaine des propositions.
+- Assistant IA branché sur un vrai modèle (API Claude) — fait : `apps/assistant`,
+  réponses fondées sur les données de l'organisme, sources citées, repli local sans clé.
 
 ### Phase 3 — Production
-- Onboarding multi-organismes (fait côté API) : inscription `ALLOW_SIGNUP`, invitation
-  d'utilisateurs, mot de passe par lien. Reste : écrans du front (inscription, page
-  `/definir-mot-de-passe`).
+- Onboarding multi-organismes (fait) : inscription `ALLOW_SIGNUP`, invitation
+  d'utilisateurs, mot de passe par lien, écrans du front (inscription, mot de passe
+  oublié, `/definir-mot-de-passe`).
 - Exploitation (fait) : réglages HTTPS, journaux JSON, erreurs JSON, e-mail, stockage S3
   optionnel, sondes `health` / `ready`, script de sauvegarde, schéma OpenAPI validé en CI.
 - Droits fins par processus (fait) : réglage d'organisme `droitsParProcessus` (désactivé
   par défaut), pilotes / copilotes limités aux éléments de leurs processus
   (`apps/core/scope.py`, règles dans `backend/README.md`), case dans Paramètres (mode API),
   tests `test_process_rights.py`, e2e `scripts/api-rights-e2e.mjs`. Reste : SSO éventuel.
-- Supervision externe, RGPD / Code du numérique béninois (APDP).
+- Données personnelles (fait côté plateforme, cf. `docs/DONNEES_PERSONNELLES.md`) : export
+  JSON de ses données, anonymisation d'un compte par un administrateur, purge des traces
+  techniques (`purge_logs`), registre des traitements. Reste à l'organisme : DPO, formalités
+  APDP, durées de conservation.
+- Supervision externe.

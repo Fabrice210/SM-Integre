@@ -170,6 +170,7 @@ REST_FRAMEWORK = {
         "signup": env("THROTTLE_SIGNUP", default="5/hour"),
         "password": env("THROTTLE_PASSWORD", default="10/hour"),
         "refresh": env("THROTTLE_REFRESH", default="30/min"),
+        "export": env("THROTTLE_EXPORT", default="5/hour"),
     },
     "EXCEPTION_HANDLER": "apps.core.exceptions.camel_exception_handler",
 }
@@ -216,6 +217,13 @@ ALLOW_SIGNUP = env.bool("ALLOW_SIGNUP", default=False)
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5174").rstrip("/")
 # Chemin de la page du front qui reçoit ?uid=…&token=… et appelle /auth/password/confirm/.
 PASSWORD_SET_PATH = env("PASSWORD_SET_PATH", default="/definir-mot-de-passe")
+
+# ---------- Données personnelles (docs/DONNEES_PERSONNELLES.md) ----------
+
+# Durée de conservation (jours) de la trace technique (AuditLog) et des envois de
+# notifications (NotificationLog), purgés par `manage.py purge_logs` ; 0 = jamais purgés.
+# Le journal fonctionnel (JournalEntry) n'est jamais purgé (traçabilité ISO).
+AUDITLOG_RETENTION_DAYS = env.int("AUDITLOG_RETENTION_DAYS", default=0)
 
 # ---------- E-mail ----------
 # Sans EMAIL_HOST (ou en DEBUG), les e-mails sont écrits dans la console.

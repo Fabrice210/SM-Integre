@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from . import accounts, api
+from . import accounts, api, privacy
 
 router = DefaultRouter()
 router.include_root_view = False
@@ -19,6 +19,7 @@ urlpatterns = [
     path("auth/refresh/", api.RefreshView.as_view(), name="token-refresh"),
     path("auth/logout/", api.LogoutView.as_view(), name="logout"),
     path("auth/me/", api.me, name="me"),
+    path("auth/me/export/", privacy.MyDataExportView.as_view(), name="me-export"),
     path("organisation/", api.OrganisationView.as_view(), name="organisation"),
     path("settings/", api.SettingsView.as_view(), name="settings"),
     path("bootstrap/", api.bootstrap, name="bootstrap"),
