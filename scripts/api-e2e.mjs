@@ -15,9 +15,11 @@
  * de lecture réinitialisés) ; les paramètres (normes actives) ; les utilisateurs
  * (invitation + modification) ; puis rechargement et vérification côté serveur par
  * lecture directe de l'API. Ensuite : écritures rapides successives (pas de doublon,
- * dernier état gagnant), serveur injoignable (écriture rejouée), Collaborateur (refus
- * signalés, écran revenu à l'état du serveur, déclaration de NC autorisée), session
- * expirée (jeton invalide -> /login), déconnexion.
+ * dernier état gagnant), serveur injoignable (écriture rejouée), collision d'id client
+ * (création rejouée sous un nouvel id, références réécrites), changement refusé non
+ * réembarqué (updates retenus puis rejoués sur l'état rechargé), Collaborateur (refus
+ * signalés, écran revenu à l'état du serveur, déclaration de NC, accusé de lecture de
+ * la politique), session expirée (jeton invalide -> /login), déconnexion.
  */
 import { chromium } from 'playwright'
 
@@ -524,7 +526,7 @@ try {
     const p = await serverGet(`/parties/${n}/`)
     check(p.exigences === 'Rafale 8', `dernier état gagnant côté serveur (« ${p.exigences} »)`)
     const puts = calls.filter((c) => c.startsWith(`PUT /parties/${n}/`)).length
-    check(puts >= 1 && puts <= 8, `${puts} PUT envoyé(s) pour 8 modifications (fusion en file)`)
+    check(puts === 8, `${puts} PUT envoyés dans l’ordre pour 8 modifications`)
   }
 
   section('Serveur injoignable : l’écriture est rejouée, rien n’est perdu')
@@ -675,6 +677,208 @@ try {
     )
   }
 
+  section('Collision d’identifiant : id client déjà pris sur le serveur par un autre')
+  {
+    await goto('m1-domaine')
+    await clearToasts()
+    const seq = await storeState('return s.uidSeq')
+    const taken = 'S' + (seq + 1)
+    const s0 = (await serverGet('/sites/'))[0]
+    const other = await server('/sites/', 'POST', {
+      ...s0,
+      id: taken,
+      nom: `Site d’un autre utilisateur ${STAMP}`,
+    })
+    check(other.status === 201, `id ${taken} pris côté serveur par un autre client`)
+    const boots = calls.filter((c) => c.startsWith('GET /bootstrap/')).length
+    const nom = `Site collision ${STAMP}`
+    await page.locator('button:has-text("Ajouter un site")').first().click()
+    await modalReady()
+    await page.fill('.modal [data-f="nom"] .inp', nom)
+    const refused = waitCall('POST', /^\/sites\/(\?at=start)?$/)
+    const ok = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'POST' &&
+        /\/sites\/(\?at=start)?$/.test(r.url()) &&
+        r.status() === 201,
+      { timeout: 10000 }
+    )
+    await page.click('.modal #saveBtn')
+    check((await refused).status() === 400, `1re création refusée (400, ${taken} déjà utilisé)`)
+    const created = await (await ok).json()
+    check(created.id !== taken, `création rejouée avec un nouvel id : ${created.id}`)
+    await idle()
+    const sites = await serverGet('/sites/')
+    check(sites.filter((x) => x.nom === nom).length === 1, 'exactement une création, aucun doublon')
+    check(
+      sites.find((x) => x.id === taken)?.nom === `Site d’un autre utilisateur ${STAMP}`,
+      'élément de l’autre utilisateur intact'
+    )
+    const localId = await storeState(`return s.db.sites.find((x) => x.nom === '${nom}')?.id`)
+    check(localId === created.id, `store mis à jour avec le nouvel id (${localId})`)
+    check(
+      calls.filter((c) => c.startsWith('GET /bootstrap/')).length === boots,
+      'aucun rechargement nécessaire'
+    )
+    // Modification ensuite : sur le nouvel id
+    await openEdit(nom)
+    await page.fill('.modal [data-f="activite"] .inp', 'Activité après collision')
+    const put = waitCall('PUT', `/sites/${created.id}/`)
+    await page.click('.modal #saveBtn')
+    check((await put).status() === 200, `modification sur le nouvel id (PUT /sites/${created.id}/)`)
+    await idle()
+    // Références dans le même update : processus + objectif qui le référence
+    const p01 = await serverGet('/processus/P01/')
+    const ob0 = (await serverGet('/objectifs/'))[0]
+    const pid = 'P' + (seq + 50)
+    await server('/processus/', 'POST', { ...p01, id: pid, code: pid, nom: 'Processus d’un autre' })
+    await page.evaluate(
+      ([p01, ob0, pid, stamp]) =>
+        import('/src/store/useApp.ts').then((m) =>
+          m.update((s) => {
+            s.db.processus.push({ ...p01, id: pid, code: pid, nom: 'Processus E2E ' + stamp })
+            s.db.objectifs.push({
+              ...ob0,
+              id: 'OBX' + stamp,
+              code: 'OBX-' + stamp,
+              processus: [pid],
+              actions: [],
+            })
+          })
+        ),
+      [p01, ob0, pid, STAMP]
+    )
+    await idle()
+    const procs = await serverGet('/processus/')
+    const mine = procs.find((x) => x.nom === 'Processus E2E ' + STAMP)
+    check(mine && mine.id !== pid, `processus recréé sous un nouvel id (${mine?.id})`)
+    const ob = await serverGet(`/objectifs/OBX${STAMP}/`)
+    check(
+      ob?.processus?.length === 1 && ob.processus[0] === mine?.id,
+      `référence de l’objectif réécrite (${ob?.processus})`
+    )
+    const localRef = await storeState(
+      `return s.db.objectifs.find((x) => x.id === 'OBX${STAMP}').processus[0]`
+    )
+    check(localRef === mine?.id, 'référence locale réécrite')
+    check(
+      procs.find((x) => x.id === pid)?.nom === 'Processus d’un autre',
+      'processus de l’autre utilisateur intact'
+    )
+  }
+
+  section('Changement refusé : pas réembarqué par les modifications suivantes')
+  {
+    await goto('m1-domaine')
+    await clearToasts()
+    const site = (await serverGet('/sites/'))[2]
+    const bodies = []
+    const onReq = (r) => {
+      if (r.method() === 'PUT' && r.url() === `${API}/sites/${site.id}/`) bodies.push(r.postData())
+    }
+    page.on('request', onReq)
+    let release1, release2, fetched
+    const gate1 = new Promise((r) => (release1 = r))
+    const gate2 = new Promise((r) => (release2 = r))
+    const bootFetched = new Promise((r) => (fetched = r))
+    let first = true
+    await page.route(`${API}/sites/${site.id}/`, async (route) => {
+      if (route.request().method() === 'PUT' && first) {
+        first = false
+        await gate1
+      }
+      return route.continue()
+    })
+    await page.route(API + '/bootstrap/', async (route) => {
+      const response = await route.fetch()
+      fetched()
+      await gate2
+      return route.fulfill({ response })
+    })
+    const edit = (src) =>
+      page.evaluate(
+        ([id, src]) =>
+          import('/src/store/useApp.ts').then((m) =>
+            m.update((s) => new Function('x', src)(s.db.sites.find((x) => x.id === id)))
+          ),
+        [site.id, src]
+      )
+    await edit("x.justification = 'Court'") // refusée (10 caractères minimum)
+    await settle(300)
+    await edit("x.activite = 'Activité après refus'") // en file pendant le refus
+    release1()
+    await bootFetched // refus reçu, rechargement lancé
+    await edit("x.adresse = 'Adresse pendant rechargement'") // pendant le rechargement
+    release2()
+    await settle(500)
+    await idle()
+    await settle(300)
+    await page.unroute(`${API}/sites/${site.id}/`)
+    await page.unroute(API + '/bootstrap/')
+    page.off('request', onReq)
+    const srv = await serverGet(`/sites/${site.id}/`)
+    check(
+      srv.justification === site.justification,
+      'changement refusé absent du serveur (justification d’origine)'
+    )
+    check(
+      srv.activite === 'Activité après refus' && srv.adresse === 'Adresse pendant rechargement',
+      'modifications suivantes rejouées sur l’état du serveur'
+    )
+    check(
+      bodies.filter((b) => b.includes('"Court"')).length === 1,
+      `le changement refusé n’est envoyé qu’une fois (${bodies.length} PUT)`
+    )
+    const loc = await storeState(`return s.db.sites.find((x) => x.id === '${site.id}')`)
+    check(
+      loc.justification === site.justification &&
+        loc.activite === 'Activité après refus' &&
+        loc.adresse === 'Adresse pendant rechargement',
+      'écran = serveur'
+    )
+
+    // Élément supprimé ailleurs : la modification retenue ne s'applique plus -> abandon signalé
+    const tmp = (await server('/sites/', 'POST', { ...site, id: undefined, nom: 'Éphémère E2E' }))
+      .data
+    await page.reload()
+    await page.waitForSelector('.content')
+    await server(`/sites/${tmp.id}/`, 'DELETE')
+    await clearToasts()
+    let release3
+    const gate3 = new Promise((r) => (release3 = r))
+    await page.route(`${API}/sites/${tmp.id}/`, async (route) => {
+      await gate3
+      return route.continue()
+    })
+    const edit2 = (src) =>
+      page.evaluate(
+        ([id, src]) =>
+          import('/src/store/useApp.ts').then((m) =>
+            m.update((s) => new Function('x', src)(s.db.sites.find((x) => x.id === id)))
+          ),
+        [tmp.id, src]
+      )
+    await edit2("x.activite = 'Première'")
+    await settle(300)
+    await edit2("x.activite = 'Seconde'")
+    release3()
+    await idle()
+    await page.waitForFunction(
+      () =>
+        [...document.querySelectorAll('.toast')].some((t) =>
+          /ne s'applique\(nt\) plus/.test(t.textContent)
+        ),
+      null,
+      { timeout: 10000 }
+    )
+    check(true, 'modification devenue inapplicable abandonnée avec un message')
+    await page.unroute(`${API}/sites/${tmp.id}/`)
+    check(
+      !(await storeState(`return s.db.sites.some((x) => x.id === '${tmp.id}')`)),
+      'élément supprimé retiré de l’écran'
+    )
+  }
+
   section('Déconnexion pendant une écriture')
   {
     await goto('m1-domaine')
@@ -780,6 +984,37 @@ try {
     check(
       local && nc && local.statut === nc.statut && local.id === nc.id,
       `écran aligné sur le serveur (statut « ${local?.statut} » / « ${nc?.statut} »)`
+    )
+
+    // Accusé de lecture de la politique (action du serveur ouverte à tout membre)
+    await goto('m2-politique')
+    await clearToasts()
+    const btn = page.locator('button:has-text("J\'accuse lecture")')
+    check(await btn.isVisible(), 'bouton « J’accuse lecture » visible (accusé « Non lu »)')
+    const ack = waitCall('POST', '/accuses/accuser-lecture/')
+    const rb = waitCall('GET', '/bootstrap/')
+    await btn.click()
+    const ar = await ack
+    check([200, 201].includes(ar.status()), `POST /accuses/accuser-lecture/ ${ar.status()}`)
+    await rb
+    await settle(400)
+    const mine = (await serverGet('/accuses/')).find((a) => a.collaborateur === 'Prisca ASSOGBA')
+    check(mine?.statut === 'Lu', `accusé enregistré côté serveur (${mine?.statut}, ${mine?.date})`)
+    check(!(await btn.isVisible()), 'bouton masqué une fois la lecture accusée')
+    check(
+      await page
+        .locator('.card', { hasText: 'Accusé de diffusion' })
+        .locator('.btn-row', { hasText: 'Prisca ASSOGBA' })
+        .locator('text=Lu')
+        .first()
+        .isVisible(),
+      'écran : Prisca ASSOGBA « Lu »'
+    )
+    check(
+      (await serverGet('/journal/')).some(
+        (j) => j.u === 'Prisca ASSOGBA' && /accusé lecture/.test(j.a)
+      ),
+      'journal : accusé de lecture tracé'
     )
   }
 

@@ -27,16 +27,19 @@ import { ApiError, isAuthenticated, request } from './api'
  * Un élément nouveau sans `id` en reçoit un (préfixe de sa collection + compteur), pour
  * être suivi comme les autres (sinon chaque update suivant le recréerait).
  *
- * Les écritures partent dans une file séquentielle, dans l'ordre des update(). Une
- * écriture sur un élément ne se fond dans la précédente que si celle-ci est la dernière
- * de la file (sinon l'ordre entre collections — références — serait bouleversé).
+ * Les écritures partent dans une file séquentielle, dans l'ordre des update(), sans
+ * fusion (chaque écriture reste liée à son update et à sa recette).
  *
  * Erreurs :
  *   - serveur injoignable ou limitation de débit (429) : l'écriture reste en tête de
  *     file et est rejouée (délai croissant) — rien n'est perdu ni envoyé dans le désordre ;
  *   - refus (4xx : conflit, validation, droits) ou erreur serveur (5xx) : les écritures
  *     du même update encore en attente (effets liés, journal) sont abandonnées, l'erreur
- *     est affichée et l'état est rechargé (bootstrap) une fois la file vide ;
+ *     est affichée et l'état est rechargé (bootstrap) une fois la file vide. Jusque-là,
+ *     les updates qui touchent un élément refusé (en file ou nouveaux) sont retenus puis
+ *     rejoués sur l'état rechargé : le changement refusé n'est pas réembarqué ;
+ *   - création refusée car l'id est déjà pris (autre client) : nouvel id, remplacé dans
+ *     le store et les écritures en attente, création rejouée (sans rechargement) ;
  *   - session perdue (401) : la file est vidée (cf. session.ts, retour à la connexion).
  *
  * Réponse du serveur : si l'élément n'a pas changé localement depuis l'envoi, la
@@ -79,7 +82,13 @@ interface Write {
   batch?: number
   /** La réponse du serveur peut remplacer l'élément local (collections de `db`). */
   adopt?: 'item' | 'singleton'
+  /** Recette de l'update() d'origine (rejouée après un refus, cf. hold). */
+  recipe?: Recipe
+  /** Nouvelles tentatives après collision d'identifiant. */
+  retries?: number
 }
+
+type Recipe = (s: AppState) => void
 
 /**
  * URL d'une collection, comme le registre du backend : tiret entre une minuscule
@@ -196,14 +205,30 @@ export function writesFor(prev: AppState, next: AppState, patches: Patch[]): Wri
       coll: 'settings',
       key: 'settings',
     })
-  // Créations référencées par une modification du même update (ex. action liée à une
-  // fiche) : d'abord, sinon la référence serait inconnue du serveur.
-  const created = out.filter((w) => w.method === 'POST' && w.id).map((w) => w.id!)
-  const updated = out
-    .filter((w) => w.method === 'PUT' || w.method === 'PATCH')
-    .map((w) => JSON.stringify(w.body))
-    .join('\n')
-  const referenced = new Set(created.filter((id) => updated.includes(JSON.stringify(id))))
+  // Créations référencées par une autre écriture du même update (action liée à une fiche,
+  // objectif qui cite un processus créé en même temps…) : d'abord, et avant celles qui
+  // les référencent, sinon la référence serait inconnue du serveur.
+  const json = new Map(out.map((w) => [w, JSON.stringify(w.body ?? null)]))
+  const posts = out.filter((w) => w.method === 'POST' && w.id)
+  const referrers = (p: Write) =>
+    out.filter(
+      (w) =>
+        w !== p &&
+        w.method !== 'DELETE' &&
+        w.coll !== 'journal' &&
+        json.get(w)!.includes(JSON.stringify(p.id))
+    )
+  const levels = new Map<Write, number>()
+  const level = (p: Write, depth = 0): number => {
+    if (levels.has(p)) return levels.get(p)!
+    const by = depth > 10 ? [] : referrers(p)
+    const l = by.length
+      ? 1 + Math.max(...by.map((w) => (w.method === 'POST' && w.id ? level(w, depth + 1) : 0)))
+      : 0
+    levels.set(p, l)
+    return l
+  }
+  posts.forEach((p) => level(p))
   // Puis modifications (souvent l'action elle-même, ex. transition de statut soumise
   // à des droits), créations (effets liés : NC, registre…), suppressions, journal.
   const rank = (w: Write) =>
@@ -212,8 +237,8 @@ export function writesFor(prev: AppState, next: AppState, patches: Patch[]): Wri
       : w.method === 'DELETE'
         ? 2
         : w.method === 'POST'
-          ? w.id && referenced.has(w.id)
-            ? -1
+          ? levels.get(w)
+            ? -levels.get(w)!
             : 1
           : 0
   return out.sort((x, y) => rank(x) - rank(y)) // tri stable : ordre conservé à rang égal
@@ -266,6 +291,15 @@ const missing = new Set<string>()
 let reloadHandler: (() => Promise<void>) | null = null
 /** Accès au store (remplacement d'un élément par la réponse du serveur). */
 let store: { get: () => AppState; set: (s: AppState) => void } | null = null
+/** update() synchronisé (rejeu des recettes retenues). */
+let apply: ((recipe: Recipe) => void) | null = null
+/**
+ * Éléments (clés) dont une écriture a été refusée : jusqu'à la fin du rechargement,
+ * les updates qui les touchent sont retenus (`held`) puis rejoués sur l'état du serveur,
+ * pour ne pas réembarquer le changement refusé (PUT de l'élément complet).
+ */
+const blocked = new Set<string>()
+const held: Recipe[] = []
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -291,19 +325,14 @@ function warnMissing(coll: string) {
   toast(`« ${coll} » n'est pas encore géré par le serveur : modification non enregistrée.`, 'warn')
 }
 
-/** Ajoute une écriture, fondue dans la dernière écriture en attente si elle vise le même élément. */
+/**
+ * Ajoute une écriture. Pas de fusion entre updates : chaque écriture reste liée à son
+ * update (abandon groupé en cas de refus, rejeu de la recette), et l'ordre est conservé.
+ */
 function enqueue(w: Write) {
   if (!known.has(w.coll)) return warnMissing(w.coll)
   enqueued++
-  const q = queue.at(-1)
-  const same = !!q && !!w.key && q.key === w.key
-  if (same && w.method === 'PATCH' && q.method === 'PATCH')
-    q.body = { ...(q.body as object), ...(w.body as object) }
-  else if (same && w.method === 'PUT' && (q.method === 'PUT' || q.method === 'POST'))
-    Object.assign(q, { body: w.body, batch: w.batch })
-  else if (same && w.method === 'DELETE' && q.method === 'POST') queue.pop()
-  else if (same && w.method === 'DELETE' && q.method === 'PUT') queue[queue.length - 1] = w
-  else queue.push(w)
+  queue.push(w)
 }
 
 /** Deux valeurs JSON identiques (ordre des clés indifférent). */
@@ -349,6 +378,7 @@ function fail(w: Write, e: unknown) {
     return
   }
   if (err.status === 404 && !known.has(w.coll)) return warnMissing(w.coll)
+  if (isIdCollision(w, err) && reassignId(w)) return
   toast(
     err.status >= 500
       ? `Erreur du serveur (${err.status}) : modification non enregistrée.`
@@ -357,8 +387,115 @@ function fail(w: Write, e: unknown) {
   )
   // Refus ou erreur serveur : l'action n'est pas (entièrement) enregistrée -> on abandonne
   // le reste de cet update (effets liés, journal), puis on recharge l'état du serveur.
-  for (let i = queue.length - 1; i >= 0; i--) if (queue[i].batch === w.batch) queue.splice(i, 1)
+  if (w.key) blocked.add(w.key)
+  for (let i = queue.length - 1; i >= 0; i--)
+    if (queue[i].batch === w.batch) {
+      const [x] = queue.splice(i, 1)
+      if (x.key) blocked.add(x.key)
+    }
+  holdQueued()
   reloadNeeded = true
+}
+
+/**
+ * Updates déjà en file qui touchent un élément refusé : calculés sur l'état local qui
+ * contient encore le changement refusé -> retirés de la file et retenus, pour être
+ * rejoués sur l'état rechargé. Leurs autres éléments sont bloqués à leur tour.
+ */
+function holdQueued() {
+  for (;;) {
+    const batch = queue.find((q) => q.key && blocked.has(q.key))?.batch
+    if (batch === undefined) return
+    const recipe = queue.find((q) => q.batch === batch && q.recipe)?.recipe
+    for (let i = queue.length - 1; i >= 0; i--)
+      if (queue[i].batch === batch) {
+        const [x] = queue.splice(i, 1)
+        if (x.key) blocked.add(x.key)
+      }
+    if (recipe) held.push(recipe)
+  }
+}
+
+/**
+ * Fin du rechargement (état du serveur hydraté) : débloque les éléments refusés et
+ * rejoue les updates retenus ; une recette qui ne s'applique plus est abandonnée.
+ */
+export function afterReload() {
+  blocked.clear()
+  const recipes = held.splice(0)
+  let lost = 0
+  for (const r of recipes) {
+    try {
+      apply?.(r)
+    } catch (e) {
+      lost++
+      console.warn('[sync] modification retenue abandonnée :', e)
+    }
+  }
+  if (lost)
+    toast(
+      `${lost} modification(s) faite(s) pendant la resynchronisation ne s'applique(nt) plus à l'état du serveur : abandonnée(s).`,
+      'warn'
+    )
+}
+
+/* ---------- Collision d'identifiant (deux clients, même id) ---------- */
+
+const isIdCollision = (w: Write, err: ApiError) =>
+  w.method === 'POST' &&
+  err.status === 400 &&
+  !!w.id &&
+  (w.retries ?? 0) < 5 &&
+  /déjà utilisé/.test(JSON.stringify((err.data as Rec | undefined)?.id ?? ''))
+
+/** Remplace `from` par `to` partout où la valeur apparaît telle quelle (références). */
+function replaceValue<T>(v: T, from: string, to: string): T {
+  if (v === from) return to as T
+  if (!v || typeof v !== 'object') return v
+  let changed = false
+  const out = (Array.isArray(v) ? [] : {}) as Record<string, unknown>
+  for (const [k, x] of Object.entries(v)) {
+    const y = replaceValue(x, from, to)
+    if (y !== x) changed = true
+    out[k] = y
+  }
+  return changed ? (out as T) : v
+}
+
+/**
+ * Création refusée car l'id (généré par ce client) vient d'être pris par un autre :
+ * nouvel id (compteur recalé au-delà), remplacé dans le store et dans les écritures
+ * en attente qui le référencent, puis création rejouée — sans rechargement.
+ */
+function reassignId(w: Write): boolean {
+  const old = w.id!
+  const m = /^(.*?)(\d+)$/.exec(old)
+  if (!store || !m) return false
+  const s = store.get()
+  const list = w.coll === 'users' ? s.users : (s.db as unknown as Record<string, unknown>)[w.coll]
+  const taken = new Set((Array.isArray(list) ? list : []).filter(hasId).map((r) => r.id))
+  let seq = Math.max(s.uidSeq, Number(m[2]))
+  let id: string
+  do id = m[1] + ++seq
+  while (taken.has(id))
+  const db = replaceValue(s.db, old, id)
+  const users = w.coll === 'users' ? replaceValue(s.users, old, id) : s.users
+  store.set({ ...s, db, users, uidSeq: seq })
+  const oldKey = w.key
+  const key = w.coll + ':' + id
+  const oldSeg = '/' + encodeURIComponent(old) + '/'
+  const newSeg = '/' + encodeURIComponent(id) + '/'
+  for (const q of queue) {
+    q.body = replaceValue(q.body, old, id)
+    if (q.key === oldKey) Object.assign(q, { key, id, url: q.url.replace(oldSeg, newSeg) })
+  }
+  const after = w.coll === 'users' ? users : (db as unknown as Record<string, unknown>)[w.coll]
+  const body =
+    (Array.isArray(after) ? after : []).find((r) => hasId(r) && r.id === id) ??
+    replaceValue(w.body, old, id)
+  queue.unshift({ ...w, id, key, body, retries: (w.retries ?? 0) + 1 })
+  console.info(`[sync] identifiant ${old} déjà pris sur le serveur : création rejouée en ${id}.`)
+  return true
 }
 
 async function drain() {
@@ -425,6 +562,8 @@ export async function flush(timeout = Infinity): Promise<boolean> {
 /** Abandonne les écritures en attente (déconnexion, session perdue). */
 export function discard() {
   queue.length = 0
+  blocked.clear()
+  held.length = 0
   generation++
   reloadNeeded = false
   offline = false
@@ -437,7 +576,7 @@ export function discard() {
 export function syncedUpdate<S extends AppState>(get: () => S, set: (next: S) => void) {
   enablePatches()
   store = { get, set: set as (s: AppState) => void }
-  return (recipe: (s: AppState) => void) => {
+  const update = (recipe: Recipe) => {
     const prev = get()
     const [produced, patches] = produceWithPatches(
       prev,
@@ -450,8 +589,15 @@ export function syncedUpdate<S extends AppState>(get: () => S, set: (next: S) =>
     if (!online) return
     const writes = writesFor(prev, next, patches)
     if (!writes.length) return
+    // Élément refusé en cours de resynchronisation : update retenu, rejoué après.
+    if (writes.some((w) => w.key && blocked.has(w.key))) {
+      held.push(recipe)
+      return
+    }
     const batch = ++batchSeq
-    writes.forEach((w) => enqueue({ ...w, batch }))
+    writes.forEach((w) => enqueue({ ...w, batch, recipe }))
     if (queue.length) pump()
   }
+  apply = update
+  return update
 }
