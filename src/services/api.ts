@@ -40,6 +40,8 @@ export type BootstrapPayload = Omit<Persisted, 'dataVersion'>
 
 const REFRESH_KEY = 'sm:refresh'
 let access: string | null = null
+/** Incrémenté à chaque connexion / déconnexion : un renouvellement parti avant est ignoré. */
+let tokenGen = 0
 let renewing: Promise<boolean> | null = null
 let authLost: (() => void) | null = null
 
@@ -65,6 +67,7 @@ function readRefresh(): { token: string; remember: boolean } | null {
 }
 
 function storeTokens(tokens: { access: string; refresh: string } | null, remember = true) {
+  tokenGen++
   access = tokens?.access ?? null
   for (const [i, st] of storages().entries()) {
     try {
@@ -104,25 +107,44 @@ export function onAuthLost(handler: () => void) {
   authLost = handler
 }
 
-/** Renouvelle le jeton d'accès ; false si la session est expirée. */
+/**
+ * Exécute `fn` sous un verrou partagé entre onglets (Web Locks) quand le navigateur
+ * le permet : avec la rotation + liste noire des jetons de renouvellement, deux
+ * renouvellements simultanés (deux onglets) avec le même jeton déconnecteraient l'un
+ * des deux. Sous verrou, chaque onglet relit le jeton le plus récent avant d'appeler.
+ */
+function exclusive<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined
+  return locks ? locks.request('sm:refresh', fn) : fn()
+}
+
+/**
+ * Renouvelle le jeton d'accès ; false si la session est expirée. Un seul
+ * renouvellement à la fois par onglet (promesse partagée), et entre onglets (verrou).
+ * Serveur injoignable, limitation de débit (429) ou erreur serveur : l'erreur est
+ * propagée et la session conservée (seul un refus du jeton la ferme).
+ */
 export function renew(): Promise<boolean> {
-  renewing ??= (async () => {
+  renewing ??= exclusive(async () => {
     const saved = readRefresh()
     if (!saved) return false
+    const gen = tokenGen
     try {
       const t = await request<{ access: string; refresh?: string }>('/auth/refresh/', {
         method: 'POST',
         body: { refresh: saved.token },
         auth: false,
       })
+      // Déconnexion (ou nouvelle connexion) pendant le renouvellement : on n'y touche pas.
+      if (gen !== tokenGen) return access !== null
       storeTokens({ access: t.access, refresh: t.refresh ?? saved.token }, saved.remember)
       return true
     } catch (e) {
-      if (e instanceof ApiError && e.status === 0) throw e
-      clearTokens()
+      if (e instanceof ApiError && (e.status === 0 || e.status === 429 || e.status >= 500)) throw e
+      if (gen === tokenGen) clearTokens()
       return false
     }
-  })().finally(() => (renewing = null))
+  }).finally(() => (renewing = null))
   return renewing
 }
 
@@ -173,7 +195,8 @@ async function authorized(path: string, opts: RequestOptions): Promise<Response>
   let res = await send(path, opts)
   if (res.status === 401 && auth) {
     if (await renew()) res = await send(path, opts)
-    else authLost?.()
+    // Renouvellement refusé, ou jeton neuf lui aussi refusé (compte désactivé…)
+    if (res.status === 401) authLost?.()
   }
   return res
 }

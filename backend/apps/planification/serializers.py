@@ -10,12 +10,14 @@ from .services import next_padded_uid, today, validate_optional_refs
 
 # ---------- Plan d'action d'un objectif (ACT_F de helpers.ts) ----------
 
-ACTION_KEYS = ("libelle", "responsable", "echeance", "statut", "pieces", "observation")
+# `pi` : partie intéressée dont le plan d'engagement est suivi par l'action
+# (planEngagementAction() du module 1).
+ACTION_KEYS = ("libelle", "responsable", "echeance", "statut", "pieces", "observation", "pi")
 ACTION_REQUIRED = ("libelle", "echeance", "statut")
 
 
 def validate_action(action, index: int | None = None) -> dict:
-    """Structure d'une action d'objectif : {libelle, responsable, echeance, statut, pieces?, observation}."""
+    """Structure d'une action d'objectif : {libelle, responsable, echeance, statut, pieces?, observation, pi?}."""
     where = f"Action {index + 1} : " if index is not None else ""
     if not isinstance(action, dict):
         raise serializers.ValidationError(f"{where}objet attendu.")
