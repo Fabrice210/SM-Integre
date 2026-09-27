@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     # Tiers
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",  # révocation des jetons (rotation, déconnexion)
     "django_filters",
     "drf_spectacular",
     "corsheaders",
@@ -168,6 +169,7 @@ REST_FRAMEWORK = {
         "login": env("THROTTLE_LOGIN", default="10/min"),
         "signup": env("THROTTLE_SIGNUP", default="5/hour"),
         "password": env("THROTTLE_PASSWORD", default="10/hour"),
+        "refresh": env("THROTTLE_REFRESH", default="30/min"),
     },
     "EXCEPTION_HANDLER": "apps.core.exceptions.camel_exception_handler",
 }
@@ -176,6 +178,8 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_MINUTES", default=30)),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=env.int("JWT_REFRESH_DAYS", default=7)),
     "ROTATE_REFRESH_TOKENS": True,
+    # Un jeton de rafraîchissement déjà utilisé (ou révoqué à la déconnexion) est refusé.
+    "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
 }
 
@@ -289,3 +293,18 @@ if not SECURE_HSTS_INCLUDE_SUBDOMAINS:
 if not SECURE_HSTS_PRELOAD:
     # Le préchargement HSTS est une inscription volontaire aux listes des navigateurs.
     SILENCED_SYSTEM_CHECKS.append("security.W021")
+
+
+# Cache partagé : indispensable aux limites de débit (throttling) avec plusieurs workers
+# gunicorn. Sans REDIS_URL, cache mémoire local (limites comptées par processus).
+REDIS_URL = env("REDIS_URL", default="")
+CACHES = {
+    "default": (
+        {"BACKEND": "django.core.cache.backends.redis.RedisCache", "LOCATION": REDIS_URL}
+        if REDIS_URL
+        else {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
+    )
+}
+
+# Taille maximale d'une pièce jointe GED (octets) ; rester sous client_max_body_size de nginx.
+GED_MAX_UPLOAD_SIZE = env.int("GED_MAX_UPLOAD_SIZE", default=20 * 1024 * 1024)

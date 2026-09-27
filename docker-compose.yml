@@ -22,6 +22,17 @@ services:
       retries: 10
       start_period: 10s
 
+  # Cache partagé entre les workers gunicorn (limites de débit, jetons).
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -30,8 +41,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-sm}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sm_integre}
+      REDIS_URL: redis://redis:6379/0
+      GED_MAX_UPLOAD_SIZE: ${GED_MAX_UPLOAD_SIZE:-20971520}
       SECRET_KEY: ${SECRET_KEY:?Définir SECRET_KEY dans .env}
       DEBUG: ${DEBUG:-false}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
@@ -97,6 +112,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:?Définir SECRET_KEY dans .env}
       DEBUG: ${DEBUG:-false}
       MIGRATE_ON_START: "0"
+      REDIS_URL: redis://redis:6379/0
       ALERTS_TIME: ${ALERTS_TIME:-06:00}
       ALERTS_ON_START: ${ALERTS_ON_START:-0}
       FRONTEND_URL: ${FRONTEND_URL:-}

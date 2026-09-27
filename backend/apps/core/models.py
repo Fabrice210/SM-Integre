@@ -18,6 +18,11 @@ from django.db import models, transaction
 from django.db.models import F
 
 NORM_IDS = ("9001", "14001", "45001", "27001")
+# Identifiant front (uid) : lettres, chiffres, « _ », « - », « . », sans commencer par un point
+# (utilisé dans les URL et les chemins des pièces jointes : pas de « / », pas de « .. »).
+UID_REGEX = r"[A-Za-z0-9_-][A-Za-z0-9_.-]{0,31}"
+# Borne du compteur uid_seq (PositiveIntegerField sur PostgreSQL).
+UID_SEQ_MAX = 2_147_483_647
 
 
 class Organisation(models.Model):
@@ -51,6 +56,8 @@ class Organisation(models.Model):
         m = re.search(r"(\d+)$", uid or "")
         if m:
             n = int(m.group(1))
+            if n > UID_SEQ_MAX:
+                return  # id client hors du compteur : ignoré (évite un dépassement d'entier)
             if Organisation.objects.filter(pk=self.pk, uid_seq__lt=n).update(uid_seq=n):
                 self.uid_seq = n
 

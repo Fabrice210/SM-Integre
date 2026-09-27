@@ -78,7 +78,7 @@ export async function restoreSession() {
 /** Déconnexion : envoie les dernières écritures (journal), puis oublie jetons et données. */
 export async function endSession() {
   await flush()
-  api.clearTokens()
+  await api.revokeTokens()
   useApp.setState({ ...initialData(), session: null })
 }
 

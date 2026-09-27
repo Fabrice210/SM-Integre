@@ -83,6 +83,9 @@ Elles sont lues dans le fichier `.env` à la racine (modèle : `.env.docker.exam
 | `AWS_S3_REGION_NAME` / `AWS_S3_ENDPOINT_URL` | — | Région ; point d'accès d'un stockage compatible S3 (MinIO, Scaleway, OVH…) |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | — | Identifiants S3 (sinon rôle IAM de l'hôte) |
 | `AWS_LOCATION` / `AWS_S3_ADDRESSING_STYLE` | `media` / — | Préfixe des objets ; `path` pour MinIO |
+| `REDIS_URL` | `redis://redis:6379/0` (compose) | Cache partagé : limites de débit communes à tous les workers. Vide : cache mémoire par processus |
+| `GED_MAX_UPLOAD_SIZE` | `20971520` (20 Mo) | Taille maximale d'une pièce jointe GED, sous `client_max_body_size` (25 Mo) de nginx |
+| `THROTTLE_LOGIN` / `THROTTLE_REFRESH` | `10/min` / `30/min` | Limites de connexion et de renouvellement de jeton ; les jetons de renouvellement usagés ou révoqués (`POST /api/v1/auth/logout/`) sont refusés |
 | `INTERNAL_HOSTS` | `127.0.0.1,localhost` | Hôtes toujours acceptés en plus d'`ALLOWED_HOSTS` (sondes du conteneur) |
 
 `DATABASE_URL` est construite par `docker-compose.yml` à partir des variables `POSTGRES_*`.

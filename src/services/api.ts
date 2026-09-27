@@ -79,6 +79,23 @@ function storeTokens(tokens: { access: string; refresh: string } | null, remembe
 /** Oublie les jetons (déconnexion). */
 export const clearTokens = () => storeTokens(null)
 
+/** Déconnexion : révoque le jeton de renouvellement côté serveur (au mieux), puis l'oublie. */
+export async function revokeTokens() {
+  const saved = readRefresh()
+  if (saved) {
+    try {
+      await request('/auth/logout/', {
+        method: 'POST',
+        body: { refresh: saved.token },
+        auth: false,
+      })
+    } catch {
+      /* hors ligne ou jeton déjà expiré : l'oubli local suffit */
+    }
+  }
+  clearTokens()
+}
+
 /** Une session serveur est ouverte (ou peut être reprise). */
 export const isAuthenticated = () => access !== null || readRefresh() !== null
 
@@ -292,6 +309,9 @@ export async function fetchFile(path: string): Promise<{ blob: Blob; filename: s
   const res = await authorized(path, { accept: '*/*' })
   if (!res.ok) return fail(res)
   const fallback = path.split('?')[0].split('/').pop() || 'export'
-  return { blob: await res.blob(), filename: filenameOf(res.headers.get('Content-Disposition')) ?? fallback }
+  return {
+    blob: await res.blob(),
+    filename: filenameOf(res.headers.get('Content-Disposition')) ?? fallback,
+  }
 }
 export const fetchBootstrap = () => request<BootstrapPayload>('/bootstrap/')

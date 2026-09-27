@@ -20,7 +20,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
-from apps.core.permissions import IsMemberAnyMethod
+from apps.core.permissions import IsMemberReadAction
 from apps.core.tracing import log_act
 
 from . import service
@@ -64,7 +64,7 @@ class AnswerSerializer(serializers.Serializer):
 
 
 class AskView(APIView):
-    permission_classes = [IsMemberAnyMethod]
+    permission_classes = [IsMemberReadAction]
     throttle_classes = [AssistantThrottle]
 
     @extend_schema(request=AskSerializer, responses={200: AnswerSerializer, 503: OpenApiTypes.OBJECT})

@@ -8,11 +8,16 @@ Filtres communs :
   ?ordering=champ    tri
 """
 
+from collections.abc import Mapping
+
 from django.db import transaction
 from rest_framework import mixins, status, viewsets
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
 
-from .models import NORM_IDS, AuditLog
+from .models import NORM_IDS, UID_REGEX, AuditLog
+from .validation import contains_nul
 
 
 def log_write(request, collection: str, action: str, uid: str = "", data=None):
@@ -26,8 +31,35 @@ def log_write(request, collection: str, action: str, uid: str = "", data=None):
     )
 
 
+CRUD_ACTIONS = ("create", "update", "partial_update", "destroy")
+
+
 class OrgContextMixin:
     collection = None  # apps.core.registry.Collection
+    # Actions métier qui acceptent un tableau JSON comme corps (ex. import d'objectifs).
+    list_body_actions: tuple[str, ...] = ()
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        # Corps JSON seulement : un formulaire est toujours un objet, et lire request.data ici
+        # pour un type non accepté par l'action donnerait 415 avant le 404 / 403 de la vue.
+        if (
+            request.method in SAFE_METHODS
+            or not (request.content_type or "").startswith("application/json")
+            or not any(p.media_type == "application/json" for p in request.parsers)
+        ):
+            return
+        # Actions métier : le corps est un objet. Un tableau ou un scalaire donne une erreur
+        # 400 propre au lieu d'une erreur serveur (request.data.get…).
+        if (
+            self.action not in CRUD_ACTIONS
+            and self.action not in self.list_body_actions
+            and not isinstance(request.data, Mapping)
+        ):
+            raise ValidationError({"nonFieldErrors": ["Objet attendu dans le corps de la requête."]})
+        if contains_nul(request.data):
+            # PostgreSQL refuse le caractère NUL (texte et jsonb) : 400 plutôt qu'une erreur serveur.
+            raise ValidationError({"nonFieldErrors": ["Caractère NUL interdit."]})
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
@@ -39,7 +71,8 @@ class OrgContextMixin:
 class OrgModelViewSet(OrgContextMixin, viewsets.ModelViewSet):
     lookup_field = "uid"
     lookup_url_kwarg = "uid"
-    lookup_value_regex = "[^/]+"
+    # Seuls des uid valides atteignent la base (sinon 404 par le routage).
+    lookup_value_regex = UID_REGEX
 
     def get_queryset(self):
         qs = self.collection.model.objects.filter(organisation=self.request.user.organisation)
@@ -73,6 +106,7 @@ class SingletonViewSet(OrgContextMixin, mixins.RetrieveModelMixin, viewsets.Gene
         self.check_object_permissions(self.request, obj)
         return obj
 
+    @transaction.atomic
     def update(self, request, *args, partial=False, **kwargs):
         obj = self.get_object()
         ser = self.get_serializer(obj, data=request.data, partial=partial)

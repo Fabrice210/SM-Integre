@@ -99,12 +99,13 @@ def test_organisations_are_isolated(settings, api):
 # ---------- Invitation et mot de passe ----------
 
 
-def test_invitation_then_password_confirm(api):
-    r = api.post(
-        "/api/v1/users/",
-        {"nom": "Koffi MENSAH", "email": "k.mensah@agrobenin.bj", "roles": ["Collaborateur"]},
-        format="json",
-    )
+def test_invitation_then_password_confirm(api, django_capture_on_commit_callbacks):
+    with django_capture_on_commit_callbacks(execute=True):
+        r = api.post(
+            "/api/v1/users/",
+            {"nom": "Koffi MENSAH", "email": "k.mensah@agrobenin.bj", "roles": ["Collaborateur"]},
+            format="json",
+        )
     assert r.status_code == 201, r.content
     assert len(mail.outbox) == 1
     msg = mail.outbox[0]

@@ -19,9 +19,12 @@ def validate_refs(serializer, collection: str, value, allow_empty=True):
         if not allow_empty:
             raise serializers.ValidationError("Référence obligatoire.")
         return value
+    uids = value if isinstance(value, list) else [value]
+    # Une référence est un uid (texte) : tout autre type est une erreur de saisie (400, pas 500).
+    if not all(isinstance(u, str) for u in uids):
+        raise serializers.ValidationError(f"Identifiant(s) ({collection}) attendu(s) sous forme de texte.")
     if serializer.context.get("skip_ref_validation"):
         return value
-    uids = value if isinstance(value, list) else [value]
     model = registry.get(collection).model
     org = serializer.context["organisation"]
     found = set(model.objects.filter(organisation=org, uid__in=uids).values_list("uid", flat=True))
