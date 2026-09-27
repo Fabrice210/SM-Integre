@@ -4,7 +4,15 @@ import type { User } from '../data/referentiels'
 import { DATA_VERSION, initialData, useApp } from '../store/useApp'
 import { toast } from '../store/useOverlays'
 import * as api from './api'
-import { discard, flush, isIdle, onReloadNeeded, setKnownCollections, writeCount } from './sync'
+import {
+  afterReload,
+  discard,
+  flush,
+  isIdle,
+  onReloadNeeded,
+  setKnownCollections,
+  writeCount,
+} from './sync'
 
 /**
  * Session en mode API : connexion JWT, hydratation du store par GET /bootstrap/,
@@ -122,13 +130,26 @@ async function resync() {
   console.warn('[api] rechargement abandonné : écritures continues.')
 }
 
+/**
+ * Accusé de lecture de la politique par l'utilisateur connecté (tout membre, y compris
+ * un Collaborateur qui ne peut pas modifier les accusés) : action métier du serveur,
+ * puis rechargement de son état (accusé, journal).
+ */
+export async function acknowledgePolicy() {
+  await api.request('/accuses/accuser-lecture/', { method: 'POST' })
+  await resync()
+}
+
 if (api.API_MODE) {
   // Écriture refusée par le serveur : on recharge son état pour rester cohérent.
+  // Puis les modifications retenues pendant le rechargement sont rejouées (cf. sync.ts).
   onReloadNeeded(() =>
-    resync().catch((e) => {
-      console.error('[api] rechargement impossible :', e)
-      toast('Impossible de recharger les données du serveur : rechargez la page.', 'warn')
-    })
+    resync()
+      .catch((e) => {
+        console.error('[api] rechargement impossible :', e)
+        toast('Impossible de recharger les données du serveur : rechargez la page.', 'warn')
+      })
+      .finally(afterReload)
   )
 
   // Renouvellement refusé (session expirée ou révoquée) : retour à la connexion.

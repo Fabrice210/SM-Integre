@@ -6,7 +6,9 @@ import { PageHead } from '../../components/ui/PageHead'
 import { MOD_FULL } from '../../data/referentiels'
 import { openForm } from '../../forms/crud'
 import { fd } from '../../lib/dates'
+import { API_MODE } from '../../services/api'
 import { printDoc } from '../../services/exports'
+import { acknowledgePolicy } from '../../services/session'
 import { logAct, update, useApp } from '../../store/useApp'
 import { toast } from '../../store/useOverlays'
 import { diffuserNoyau } from './diffusion'
@@ -22,8 +24,20 @@ export function PolitiquePage() {
   const preuvesCom = useApp((s) => s.db.preuvesCom) as Any[]
   const activeNorms = useApp((s) => s.activeNorms)
   const diffusions = useApp((s) => (s.db as Any).diffusions) as Any[] | undefined
-  const diffs = useMemo(() => (diffusions || []).filter((x) => /Politique/.test(x.doc)), [diffusions])
+  const diffs = useMemo(
+    () => (diffusions || []).filter((x) => /Politique/.test(x.doc)),
+    [diffusions]
+  )
   const lus = accuses.filter((a) => a.statut === 'Lu').length
+  // Mode API : l'utilisateur connecté accuse lui-même lecture (action du serveur).
+  const me = useApp((s) => s.users.find((u) => u.id === s.session?.userId))
+  const monAccuse = me ? accuses.find((a) => a.collaborateur === me.nom) : undefined
+  const peutAccuser = API_MODE && !!me && monAccuse?.statut !== 'Lu'
+  const accuser = () =>
+    acknowledgePolicy().then(
+      () => toast('Lecture de la politique ' + p.version + ' enregistrée.'),
+      (e: Error) => toast('Accusé de lecture non enregistré : ' + e.message, 'warn')
+    )
   const genAccuse = () =>
     printDoc(
       `Accusé de diffusion — politique SM ${p.version}`,
@@ -134,13 +148,24 @@ export function PolitiquePage() {
             <button className="btn sm" onClick={relancer}>
               Relancer les non-lus
             </button>
+            {peutAccuser ? (
+              <button className="btn sm primary" onClick={accuser}>
+                <Icon name="check" size={14} /> J'accuse lecture
+              </button>
+            ) : null}
           </div>
           {diffs.length ? (
             <div className="dsec" style={{ marginTop: 12 }}>
               <h4 style={{ fontSize: 13 }}>Historique de diffusion</h4>
               {diffs.slice(0, 4).map((x, i) => (
-                <div key={i} className="small" style={{ padding: '5px 0', borderTop: '1px solid var(--line)' }}>
-                  {x.d} — <b>{x.canal === 'interne' ? 'Interne — dépôt direct' : 'Externe — email'}</b> → {x.destinataires}
+                <div
+                  key={i}
+                  className="small"
+                  style={{ padding: '5px 0', borderTop: '1px solid var(--line)' }}
+                >
+                  {x.d} —{' '}
+                  <b>{x.canal === 'interne' ? 'Interne — dépôt direct' : 'Externe — email'}</b> →{' '}
+                  {x.destinataires}
                   {x.canal === 'externe' ? ' · ' + x.piece : ''}
                 </div>
               ))}
