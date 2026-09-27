@@ -47,18 +47,19 @@ E2E_DIR=/tmp/auth-e2e CHROMIUM_PATH=… node scripts/api-auth-e2e.mjs   # démar
 - Exports via l'API avec jeton JWT : `processus.xlsx`, `ncs.csv`, `registre.pdf`,
   `tableau-de-bord.pdf`, `rapport-revue/RV1.pdf`, `rapport-audit/A1.pdf` → 200.
 - `docker compose config` valide (PostgreSQL, Redis, API, scheduler, front nginx).
+- `backend/scripts/backup.sh` sur PostgreSQL 16 : dump + archive des fichiers, puis
+  `pg_restore` dans une base vierge → 14 utilisateurs et 12 processus retrouvés.
 
 ## Dernier état vérifié
 
 | Contrôle | Résultat |
 |---|---|
-| pytest (SQLite) | tout vert |
+| pytest (SQLite et PostgreSQL 16) | tout vert |
 | ruff, format, migrations | propres |
 | `check --deploy`, OpenAPI `--fail-on-warn` | aucun avertissement |
 | typecheck, lint (0 erreur), build | OK |
 | `api-smoke.mjs` | 31 / 31 |
 | `api-auth-e2e.mjs` | 22 / 22 |
 
-Non exécuté dans cet environnement : suite pytest sur PostgreSQL pour les derniers ajouts
-(la CI le fait), build Docker complet (le proxy réseau de l'environnement réécrit les
-certificats), appel réel à l'API Claude (clé non fournie), sauvegarde `backup.sh` réelle.
+Non exécuté dans cet environnement : build Docker complet (le proxy réseau de
+l'environnement réécrit les certificats), appel réel à l'API Claude (clé non fournie).
