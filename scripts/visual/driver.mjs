@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-export const REACT_BASE = 'http://localhost:4180'
+export const REACT_BASE = process.env.REACT_BASE ?? 'http://localhost:4180'
 const ORIG_PORT = 4190
 
 export const UNFOLD_CSS = `
@@ -55,7 +55,7 @@ export async function startOriginalServer() {
 }
 
 export async function launch() {
-  return chromium.launch({ args: ['--font-render-hinting=none', '--disable-lcd-text', '--force-color-profile=srgb'] })
+  return chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: ['--font-render-hinting=none', '--disable-lcd-text', '--force-color-profile=srgb'] })
 }
 
 const REACT_ROUTE = (s) => (s.kind === 'login' ? '/login' : s.kind === 'onb' ? `/onboarding/${s.step + 1}` : `/${s.page}`)

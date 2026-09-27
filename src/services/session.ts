@@ -4,7 +4,7 @@ import type { User } from '../data/referentiels'
 import { DATA_VERSION, initialData, useApp } from '../store/useApp'
 import { toast } from '../store/useOverlays'
 import * as api from './api'
-import { flush, onReloadNeeded, setKnownCollections } from './sync'
+import { discard, flush, isIdle, onReloadNeeded, setKnownCollections, writeCount } from './sync'
 
 /**
  * Session en mode API : connexion JWT, hydratation du store par GET /bootstrap/,
@@ -23,6 +23,11 @@ function maxIdSeq(v: unknown): number {
   }
   return m
 }
+
+/** Incrémenté à chaque fin de session : une réponse arrivée après est ignorée. */
+let epoch = 0
+/** Déconnexion en cours (dernières écritures) : une nouvelle connexion l'attend. */
+let ending: Promise<void> | null = null
 
 /** Remplace les données du store par l'état du serveur. */
 export function hydrate(p: api.BootstrapPayload) {
@@ -51,6 +56,7 @@ export function hydrate(p: api.BootstrapPayload) {
 
 /** Connexion : jetons, puis état du serveur. Rejette une ApiError (message affichable). */
 export async function apiLogin(email: string, password: string, remember: boolean): Promise<User> {
+  await ending
   const user = await api.login(email, password, remember)
   hydrate(await api.fetchBootstrap())
   return user
@@ -68,27 +74,55 @@ export async function restoreSession() {
   }
 }
 
-/** Déconnexion : envoie les dernières écritures (journal), puis oublie jetons et données. */
-export async function endSession() {
-  await flush()
+/** Oublie jetons, écritures en attente et données de l'organisme. */
+function forget() {
+  epoch++
+  discard()
   api.clearTokens()
   useApp.setState({ ...initialData(), session: null })
 }
 
+/**
+ * Déconnexion : envoie les dernières écritures (journal ; 5 s au plus si le serveur
+ * est injoignable), puis oublie jetons et données.
+ */
+export function endSession(): Promise<void> {
+  const e = epoch
+  ending ??= flush(5000)
+    .then(() => void (e === epoch && forget()))
+    .finally(() => (ending = null))
+  return ending
+}
+
+/**
+ * Recharge l'état du serveur sans écraser une écriture locale : on attend que la file
+ * soit vide, et on recommence si une écriture a été faite pendant le chargement.
+ */
+async function resync() {
+  const e = epoch
+  for (let i = 0; i < 5; i++) {
+    await flush()
+    const n = writeCount()
+    const state = await api.fetchBootstrap()
+    if (e !== epoch) return
+    if (n === writeCount() && isIdle()) return hydrate(state)
+  }
+  console.warn('[api] rechargement abandonné : écritures continues.')
+}
+
 if (api.API_MODE) {
   // Écriture refusée par le serveur : on recharge son état pour rester cohérent.
-  onReloadNeeded(async () => {
-    try {
-      hydrate(await api.fetchBootstrap())
-    } catch (e) {
+  onReloadNeeded(() =>
+    resync().catch((e) => {
       console.error('[api] rechargement impossible :', e)
-    }
-  })
+      toast('Impossible de recharger les données du serveur : rechargez la page.', 'warn')
+    })
+  )
 
   // Renouvellement refusé (session expirée ou révoquée) : retour à la connexion.
   api.onAuthLost(() => {
     if (!useApp.getState().session) return
-    useApp.setState({ session: null })
+    forget()
     routerRef.navigate?.('/login')
     toast('Session expirée : reconnectez-vous.', 'warn')
   })

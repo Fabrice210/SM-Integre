@@ -40,6 +40,8 @@ export type BootstrapPayload = Omit<Persisted, 'dataVersion'>
 
 const REFRESH_KEY = 'sm:refresh'
 let access: string | null = null
+/** Incrémenté à chaque connexion / déconnexion : un renouvellement parti avant est ignoré. */
+let tokenGen = 0
 let renewing: Promise<boolean> | null = null
 let authLost: (() => void) | null = null
 
@@ -65,6 +67,7 @@ function readRefresh(): { token: string; remember: boolean } | null {
 }
 
 function storeTokens(tokens: { access: string; refresh: string } | null, remember = true) {
+  tokenGen++
   access = tokens?.access ?? null
   for (const [i, st] of storages().entries()) {
     try {
@@ -92,17 +95,20 @@ export function renew(): Promise<boolean> {
   renewing ??= (async () => {
     const saved = readRefresh()
     if (!saved) return false
+    const gen = tokenGen
     try {
       const t = await request<{ access: string; refresh?: string }>('/auth/refresh/', {
         method: 'POST',
         body: { refresh: saved.token },
         auth: false,
       })
+      // Déconnexion (ou nouvelle connexion) pendant le renouvellement : on n'y touche pas.
+      if (gen !== tokenGen) return access !== null
       storeTokens({ access: t.access, refresh: t.refresh ?? saved.token }, saved.remember)
       return true
     } catch (e) {
       if (e instanceof ApiError && e.status === 0) throw e
-      clearTokens()
+      if (gen === tokenGen) clearTokens()
       return false
     }
   })().finally(() => (renewing = null))
@@ -154,7 +160,8 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
   let res = await send(path, opts)
   if (res.status === 401 && auth) {
     if (await renew()) res = await send(path, opts)
-    else authLost?.()
+    // Renouvellement refusé, ou jeton neuf lui aussi refusé (compte désactivé…)
+    if (res.status === 401) authLost?.()
   }
   const text = await res.text()
   let data: unknown

@@ -121,6 +121,25 @@ def test_objectif_valid_actions(api):
     assert r.json()["actions"] == actions
 
 
+def test_objectif_action_linked_to_partie(api):
+    """planEngagementAction() : l'action porte l'id de la partie intéressée suivie (`pi`)."""
+    action = {
+        "libelle": "Plan d'engagement — Clients export",
+        "responsable": "Florence DOSSOU-YOVO",
+        "echeance": "2026-12-26",
+        "statut": "En cours",
+        "observation": "Revue trimestrielle",
+        "pi": "PI2",
+    }
+    obj = {**OBJ, "id": "OB-PI", "code": "OB-PI", "axe": "AX1", "actions": [action]}
+    r = api.post("/api/v1/objectifs/", obj, format="json")
+    assert r.status_code == 201, r.content
+    assert r.json()["actions"] == [action]
+    bad = {**action, "pi": 2}
+    r = api.put("/api/v1/objectifs/OB-PI/", {**obj, "actions": [bad]}, format="json")
+    assert r.status_code == 400
+
+
 def test_norme_filter(api):
     rows = api.get("/api/v1/objectifs/?norme=27001").json()
     assert [r["id"] for r in rows] == ["OB4"]
