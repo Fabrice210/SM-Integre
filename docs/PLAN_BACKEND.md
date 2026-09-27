@@ -54,6 +54,10 @@ front en a (validation GED, soumission au DG, clôture de NC…).
   l'organisme comme contexte et validation humaine des propositions.
 
 ### Phase 3 — Production
-- Onboarding multi-organismes (création d'organisme, invitation d'utilisateurs).
+- Onboarding multi-organismes (fait côté API) : inscription `ALLOW_SIGNUP`, invitation
+  d'utilisateurs, mot de passe par lien. Reste : écrans du front (inscription, page
+  `/definir-mot-de-passe`).
+- Exploitation (fait) : réglages HTTPS, journaux JSON, erreurs JSON, e-mail, stockage S3
+  optionnel, sondes `health` / `ready`, script de sauvegarde, schéma OpenAPI validé en CI.
 - Droits fins par processus (pilotes / copilotes), SSO éventuel.
-- Sauvegardes, supervision, RGPD / Code du numérique béninois (APDP).
+- Supervision externe, RGPD / Code du numérique béninois (APDP).

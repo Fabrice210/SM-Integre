@@ -57,8 +57,20 @@ docker compose up -d --build     # http://localhost:8080
 
 PostgreSQL 16, API (gunicorn) et front (nginx, qui relaie `/api/` en même origine).
 
+### Exploitation
+
+- Santé : `GET /api/v1/health/` (base jointe) et `GET /api/v1/ready/` (migrations appliquées).
+- Sauvegarde : `backend/scripts/backup.sh [dossier]` (pg_dump + fichiers déposés).
+- Sécurité HTTPS, journaux JSON, e-mails (SMTP), pièces jointes sur disque ou S3,
+  onboarding multi-organismes (inscription `ALLOW_SIGNUP`, invitations, mot de passe
+  par lien) : tout se règle par variables d'environnement, cf.
+  [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md). Vérification :
+  `python manage.py check --deploy` sans avertissement avec `DEBUG=false`.
+- Documentation de l'API : `/api/docs/` (schéma OpenAPI validé en CI).
+
 ## Documentation
 
 - [backend/README.md](backend/README.md) — API, architecture et conventions du backend
 - [docs/PLAN_BACKEND.md](docs/PLAN_BACKEND.md) — plan de passage au backend et phases
-- [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md) — Docker, variables, sauvegardes, mise en production
+- [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md) — Docker, variables, sécurité, e-mails, stockage,
+  onboarding, santé, sauvegardes, mise en production, CI
