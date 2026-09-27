@@ -19,6 +19,7 @@ Situations d'urgence (UrgencesPage.tsx : addExercice, crExercice) :
 """
 
 import os
+import re
 from types import SimpleNamespace
 
 from django.conf import settings
@@ -137,10 +138,24 @@ class DiffusionInput(serializers.Serializer):
     accuse = serializers.BooleanField(default=True, help_text="Exiger un accusé de lecture")
 
 
+def safe_filename(name: str) -> str:
+    """
+    Nom de fichier assaini : dernier segment du chemin (séparateurs « / » et « \\ »),
+    caractères sûrs uniquement (lettres, chiffres, « _ », « - », « . »), pas de point en tête,
+    extension en minuscules, 100 caractères au plus pour le nom.
+    """
+    base = re.split(r"[\\/]", name or "")[-1]
+    stem, ext = os.path.splitext(base)
+    stem = re.sub(r"[^\w.-]", "_", stem.strip()).strip("._")[:100] or "fichier"
+    ext = re.sub(r"[^\w]", "", ext[1:]).lower()
+    return f"{stem}.{ext}" if ext else stem
+
+
 class UploadInput(serializers.Serializer):
     file = serializers.FileField()
 
     def validate_file(self, f):
+        f.name = safe_filename(f.name)
         ext = os.path.splitext(f.name)[1].lower()
         if ext not in ALLOWED_EXTENSIONS:
             raise serializers.ValidationError(
@@ -159,6 +174,11 @@ class DocumentViewSet(ActionMixin, OrgModelViewSet):
     def _check_transition(self, old, new, doc):
         if new == old or new not in TRANSITION_RULES:
             return
+        self._check_right(new, doc)
+
+    def _check_right(self, new, doc):
+        """Droit de faire passer le document au statut `new`, vérifié AVANT l'état du workflow
+        (un utilisateur sans droit reçoit 403, jamais un 409 qui renseigne sur le statut)."""
         rule, message = TRANSITION_RULES[new]
         if not rule(self.request.user, doc):
             raise PermissionDenied(message)
@@ -177,10 +197,14 @@ class DocumentViewSet(ActionMixin, OrgModelViewSet):
         self._check_transition(inst.statut, serializer.validated_data.get("statut", inst.statut), inst)
         super().perform_update(serializer)
 
+    @transaction.atomic
     def perform_destroy(self, instance):
-        if instance.fichier:
-            instance.fichier.delete(save=False)
+        name = instance.fichier.name if instance.fichier else None
         super().perform_destroy(instance)
+        if name:
+            # Fichier supprimé seulement une fois la suppression en base validée.
+            storage = instance.fichier.storage
+            transaction.on_commit(lambda: storage.delete(name))
 
     def _act(self, d, statut, msg):
         """docAct() du front : hist « Document … », journal « a <verbe> le document <ref> »."""
@@ -193,16 +217,16 @@ class DocumentViewSet(ActionMixin, OrgModelViewSet):
     @transaction.atomic
     def soumettre(self, request, uid=None):
         d = self.get_object()
+        self._check_right(S.VERIFICATION, d)
         require_state(d, (S.REDACTION, S.REFUSE), "Soumission")
-        self._check_transition(d.statut, S.VERIFICATION, d)
         return self._act(d, S.VERIFICATION, "soumis à vérification — vérificateur notifié")
 
     @action(detail=True, methods=["post"], permission_classes=[IsMemberAnyMethod])
     @transaction.atomic
     def verifier(self, request, uid=None):
         d = self.get_object()
+        self._check_right(S.APPROBATION, d)
         require_state(d, (S.VERIFICATION,), "Vérification")
-        self._check_transition(d.statut, S.APPROBATION, d)
         return self._act(d, S.APPROBATION, "vérifié — approbateur notifié")
 
     @action(detail=True, methods=["post"], permission_classes=[IsMemberAnyMethod])
@@ -210,8 +234,8 @@ class DocumentViewSet(ActionMixin, OrgModelViewSet):
     def approuver(self, request, uid=None):
         """Approbation et publication : la dernière version devient la version en vigueur."""
         d = self.get_object()
+        self._check_right(S.DIFFUSE, d)
         require_state(d, (S.APPROBATION,), "Approbation")
-        self._check_transition(d.statut, S.DIFFUSE, d)
         d.version = d.derniere_version["v"]
         d.accuses = 0
         d.refus = None
@@ -221,6 +245,8 @@ class DocumentViewSet(ActionMixin, OrgModelViewSet):
     @transaction.atomic
     def refuser(self, request, uid=None):
         d = self.get_object()
+        if not (can_verify_document(request.user, d) or can_approve_document(request.user, d)):
+            raise PermissionDenied("Seul le vérificateur ou l'approbateur peut refuser un document.")
         require_state(d, (S.VERIFICATION, S.APPROBATION), "Refus")
         rule = can_verify_document if d.statut == S.VERIFICATION else can_approve_document
         if not rule(request.user, d):
@@ -290,10 +316,14 @@ class DocumentViewSet(ActionMixin, OrgModelViewSet):
     def fichier(self, request, uid=None):
         d = self.get_object()
         if request.method == "GET":
-            if not d.fichier:
+            if not d.fichier or not d.fichier.storage.exists(d.fichier.name):
                 raise NotFound("Aucune pièce jointe pour ce document.")
+            # Toujours en pièce jointe (jamais affiché dans le navigateur : pas de XSS par un
+            # fichier déposé), nom encodé par Django (RFC 6266 / 5987).
             return FileResponse(
-                d.fichier.open("rb"), as_attachment=True, filename=os.path.basename(d.fichier.name)
+                d.fichier.open("rb"),
+                as_attachment=True,
+                filename=os.path.basename(d.fichier.name),
             )
         return self._upload(request, d)
 
@@ -306,9 +336,12 @@ class DocumentViewSet(ActionMixin, OrgModelViewSet):
         require_state(d, (S.REDACTION, S.REFUSE), "Pièce jointe")
         f = payload(UploadInput, request)["file"]
         old = d.fichier.name if d.fichier else None
-        d.fichier.save(os.path.basename(f.name), f, save=False)
-        if old and old != d.fichier.name:
-            d.fichier.storage.delete(old)
+        d.fichier.save(f.name, f, save=False)
+        new = d.fichier.name
+        storage = d.fichier.storage
+        if old and old != new:
+            # Ancien fichier supprimé seulement après validation de la transaction.
+            transaction.on_commit(lambda: storage.delete(old))
         return self._done(
             d, f"Pièce jointe : {os.path.basename(d.fichier.name)}", f"a joint un fichier à {d.ref}", self.MOD
         )

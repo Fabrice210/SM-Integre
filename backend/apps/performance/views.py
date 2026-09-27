@@ -326,12 +326,18 @@ class NonConformiteViewSet(WorkflowViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         if not can_write(user):
-            # Un collaborateur déclare : le circuit démarre toujours au premier niveau.
+            # Un collaborateur déclare : le circuit démarre toujours au premier niveau, la
+            # référence est générée (pas de doublon d'une NC existante), l'efficacité et
+            # l'historique (`hist`) ne sont pas renseignables par le déclarant.
+            extra = {k: v for k, v in (serializer.validated_data.get("extra") or {}).items() if k != "hist"}
             obj = serializer.save(
                 statut=self.S.DECLAREE,
                 n1=m.NonConformite.Niveau1.EN_ATTENTE,
                 n2=m.NonConformite.Niveau2.EN_ATTENTE,
                 declarant=user.nom,
+                ref="",
+                efficacite=None,
+                extra=extra,
             )
         else:
             obj = serializer.save(declarant=serializer.validated_data.get("declarant") or user.nom)

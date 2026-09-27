@@ -85,7 +85,12 @@ demo/demo.json     données de démo exportées du front (node scripts/export-de
    `bootstrap` renvoie exactement `demo.json` pour chaque collection enregistrée.
 8. **Droits** (`apps/core/permissions.py`) : lecture pour tout membre de l'organisme ;
    écriture pour les rôles de pilotage ; utilisateurs et paramètres pour
-   Responsable SM / Administrateur système ; auditeurs externes selon `auditorAccess`.
+   Responsable SM / Administrateur système ; auditeurs externes en lecture seule, et
+   seulement si `auditorAccess`. Écritures ouvertes à tout membre (hors auditeurs externes) :
+   accusé de lecture, déclaration de NC, journal ; les autres actions ouvertes (ressource,
+   document, évaluation de formation, communication) exigent d'être la personne nommée dans
+   l'élément. `apps/core/tests/test_security.py` vérifie ces règles sur toutes les routes.
+   Identifiants (`id`) : lettres, chiffres, `_`, `-`, `.` (32 caractères, pas de point en tête).
 9. **Traçabilité** : chaque écriture API crée un `AuditLog` automatique ; le journal
    fonctionnel (`/api/v1/journal/`) est en ajout seul. Dans les actions métier, utiliser
    `apps.core.tracing` (`log_act`, `add_hist`, `now_stamp`, `add_registre`).
