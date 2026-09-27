@@ -20,7 +20,19 @@ cp .env.example .env
   (comptes de démo : e-mails de `demo/demo.json`, mot de passe `DEMO_PASSWORD`).
 - Tout l'état d'un coup : `GET /api/v1/bootstrap/` (forme `Persisted` du front).
 
-Tests et qualité : `.venv/bin/pytest`, `.venv/bin/ruff check .`, `.venv/bin/ruff format .`
+Tests et qualité : `.venv/bin/pytest`, `.venv/bin/ruff check .`, `.venv/bin/ruff format .`,
+`.venv/bin/python manage.py spectacular --validate --fail-on-warn --file /tmp/openapi.yml`
+(schéma sans avertissement : annoter toute nouvelle vue avec `@extend_schema` si besoin).
+
+Comptes et exploitation (détails : `../docs/DEPLOIEMENT.md`) :
+
+- `POST /api/v1/auth/signup/` (si `ALLOW_SIGNUP=true`) : organisme vierge + Responsable SM ;
+- `POST /api/v1/users/` sans mot de passe : invitation par e-mail ;
+  `POST /api/v1/auth/password/reset/` puis `/auth/password/confirm/ {uid, token, password}` ;
+- `GET /api/v1/health/` (base) et `GET /api/v1/ready/` (base + migrations) : 200 ou 503 ;
+- erreurs 500 / 404 en JSON sous `/api/`, journaux JSON (`LOG_FORMAT`, `LOG_LEVEL`) ;
+- pièces jointes sur disque (`MEDIA_ROOT`) ou S3 (`AWS_STORAGE_BUCKET_NAME`) ;
+- sauvegarde : `scripts/backup.sh`.
 
 ## Pile technique
 

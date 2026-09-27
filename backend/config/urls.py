@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
@@ -19,3 +21,12 @@ urlpatterns = [
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]
+
+# Développement : fichiers déposés servis par runserver (stockage disque uniquement ;
+# en production, les pièces jointes passent par l'API, droits vérifiés).
+if settings.DEBUG and not settings.USE_S3:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Erreurs en JSON sous /api/ (pages HTML de Django ailleurs).
+handler404 = "apps.core.errors.not_found"
+handler500 = "apps.core.errors.server_error"
