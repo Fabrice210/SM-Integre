@@ -32,7 +32,11 @@ Comptes et exploitation (détails : `../docs/DEPLOIEMENT.md`) :
 - `GET /api/v1/health/` (base) et `GET /api/v1/ready/` (base + migrations) : 200 ou 503 ;
 - erreurs 500 / 404 en JSON sous `/api/`, journaux JSON (`LOG_FORMAT`, `LOG_LEVEL`) ;
 - pièces jointes sur disque (`MEDIA_ROOT`) ou S3 (`AWS_STORAGE_BUCKET_NAME`) ;
-- sauvegarde : `scripts/backup.sh`.
+- sauvegarde : `scripts/backup.sh` ;
+- données personnelles (registre des traitements, droits, conservation :
+  [`../docs/DONNEES_PERSONNELLES.md`](../docs/DONNEES_PERSONNELLES.md)) :
+  `GET /api/v1/auth/me/export/` (export JSON de ses données), `POST /api/v1/users/<id>/anonymiser/`
+  (`{remplacerDansDonnees}` ; effacement par un administrateur), `manage.py purge_logs --days N`.
 
 ## Pile technique
 

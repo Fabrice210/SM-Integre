@@ -62,4 +62,8 @@ front en a (validation GED, soumission au DG, clôture de NC…).
 - Exploitation (fait) : réglages HTTPS, journaux JSON, erreurs JSON, e-mail, stockage S3
   optionnel, sondes `health` / `ready`, script de sauvegarde, schéma OpenAPI validé en CI.
 - Droits fins par processus (pilotes / copilotes), SSO éventuel.
-- Supervision externe, RGPD / Code du numérique béninois (APDP).
+- Données personnelles (fait côté plateforme, cf. `docs/DONNEES_PERSONNELLES.md`) : export
+  JSON de ses données, anonymisation d'un compte par un administrateur, purge des traces
+  techniques (`purge_logs`), registre des traitements. Reste à l'organisme : DPO, formalités
+  APDP, durées de conservation.
+- Supervision externe.

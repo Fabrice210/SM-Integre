@@ -1,6 +1,8 @@
 import { detailOpeners } from '../../app/detailRegistry'
 import { go } from '../../app/navigation'
 import { logout } from '../../features/auth/logout'
+import { API_MODE, ApiError } from '../../services/api'
+import { exportMyData } from '../../services/session'
 import { pendingValidations } from '../../services/alerts'
 import { currentUser, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
@@ -84,6 +86,24 @@ export function openProfile() {
     ),
     foot: (
       <>
+        {API_MODE ? (
+          <button
+            className="btn"
+            title="Droit d'accès et à la portabilité : fichier JSON de vos données personnelles"
+            onClick={() => {
+              exportMyData()
+                .then((f) => toast(`Vos données personnelles ont été exportées (${f}).`))
+                .catch((e) =>
+                  toast(
+                    `Export impossible : ${e instanceof ApiError ? e.message : 'erreur inconnue'}.`,
+                    'warn'
+                  )
+                )
+            }}
+          >
+            <Icon name="dl" size={15} /> Exporter mes données
+          </button>
+        ) : null}
         <button
           className="btn danger"
           onClick={() => {

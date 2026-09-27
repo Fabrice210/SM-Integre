@@ -20,7 +20,10 @@ Couverture des tests :
   d'écriture et auditeurs externes sur toutes les collections et toutes les actions,
   entrées aberrantes (jamais d'erreur 500) ;
 - règles métier et workflows de chaque module, exports, notifications, assistant IA
-  (client Claude simulé), comptes (inscription, invitation, mot de passe, jetons).
+  (client Claude simulé), comptes (inscription, invitation, mot de passe, jetons) ;
+- **données personnelles** (`apps/core/tests/test_privacy.py`) : export, anonymisation
+  (droits, garde-fous, jetons révoqués, remplacement dans les données, autre organisme
+  intact), atomicité, `purge_logs`.
 
 ## Front (racine)
 

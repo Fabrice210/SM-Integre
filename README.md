@@ -74,3 +74,5 @@ PostgreSQL 16, API (gunicorn) et front (nginx, qui relaie `/api/` en même origi
 - [docs/PLAN_BACKEND.md](docs/PLAN_BACKEND.md) — plan de passage au backend et phases
 - [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md) — Docker, variables, sécurité, e-mails, stockage,
   onboarding, santé, sauvegardes, mise en production, CI
+- [docs/DONNEES_PERSONNELLES.md](docs/DONNEES_PERSONNELLES.md) — registre des traitements de
+  données personnelles (Code du numérique du Bénin, APDP), droits, conservation, sécurité

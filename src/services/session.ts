@@ -4,6 +4,7 @@ import type { User } from '../data/referentiels'
 import { DATA_VERSION, initialData, useApp } from '../store/useApp'
 import { toast } from '../store/useOverlays'
 import * as api from './api'
+import { saveBlob } from './exports'
 import {
   afterReload,
   discard,
@@ -138,6 +139,36 @@ async function resync() {
 export async function acknowledgePolicy() {
   await api.request('/accuses/accuser-lecture/', { method: 'POST' })
   await resync()
+}
+
+/** Résultat de POST /users/<id>/anonymiser/. */
+export interface AnonymiseResult {
+  id: string
+  nom: string
+  jetonsRevoques: number
+  remplacementsDonnees: number
+  journalPseudonymise: number
+}
+
+/**
+ * Droit à l'effacement (administrateur) : le serveur anonymise le compte (et, sur option,
+ * remplace le nom dans les données), puis l'état du serveur est rechargé.
+ */
+export async function anonymiseUser(id: string, remplacerDansDonnees: boolean) {
+  await flush()
+  const r = await api.request<AnonymiseResult>(`/users/${encodeURIComponent(id)}/anonymiser/`, {
+    method: 'POST',
+    body: { remplacerDansDonnees },
+  })
+  await resync()
+  return r
+}
+
+/** Droit d'accès / portabilité : fichier JSON des données personnelles de l'utilisateur connecté. */
+export async function exportMyData() {
+  const { blob, filename } = await api.fetchFile('/auth/me/export/')
+  saveBlob(filename, blob)
+  return filename
 }
 
 if (api.API_MODE) {

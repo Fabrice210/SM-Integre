@@ -86,6 +86,8 @@ Elles sont lues dans le fichier `.env` à la racine (modèle : `.env.docker.exam
 | `REDIS_URL` | `redis://redis:6379/0` (compose) | Cache partagé : limites de débit communes à tous les workers. Vide : cache mémoire par processus |
 | `GED_MAX_UPLOAD_SIZE` | `20971520` (20 Mo) | Taille maximale d'une pièce jointe GED, sous `client_max_body_size` (25 Mo) de nginx |
 | `THROTTLE_LOGIN` / `THROTTLE_REFRESH` | `10/min` / `30/min` | Limites de connexion et de renouvellement de jeton ; les jetons de renouvellement usagés ou révoqués (`POST /api/v1/auth/logout/`) sont refusés |
+| `THROTTLE_EXPORT` | `5/hour` | Exports de ses données personnelles par utilisateur (`GET /api/v1/auth/me/export/`) |
+| `AUDITLOG_RETENTION_DAYS` | `0` (jamais) | Conservation (jours) des `AuditLog` et `NotificationLog`, purgés chaque jour par le `scheduler` (`manage.py purge_logs`) ; le journal fonctionnel n'est jamais purgé. Voir [DONNEES_PERSONNELLES.md](DONNEES_PERSONNELLES.md) |
 | `INTERNAL_HOSTS` | `127.0.0.1,localhost` | Hôtes toujours acceptés en plus d'`ALLOWED_HOSTS` (sondes du conteneur) |
 
 `DATABASE_URL` est construite par `docker-compose.yml` à partir des variables `POSTGRES_*`.
@@ -105,6 +107,7 @@ fois le même jour (table `NotificationLog`) : une relance manuelle est sans ris
 |---|---|---|
 | `ALERTS_TIME` | `06:00` | Heure d'envoi quotidienne, horloge du conteneur (UTC) : 06:00 UTC = 07:00 à Porto-Novo |
 | `ALERTS_ON_START` | `0` | `1` : envoi aussi au démarrage du service |
+| `AUDITLOG_RETENTION_DAYS` | `0` | `> 0` : `manage.py purge_logs --days N` suit chaque jour l'envoi (AuditLog / NotificationLog de plus de N jours) |
 | `FRONTEND_URL` | — | URL de la plateforme, en lien dans l'e-mail (ex. `https://sm.exemple.bj`) |
 | `EMAIL_HOST` / `EMAIL_PORT` | — / `587` | Serveur SMTP |
 | `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | — | Identifiants SMTP |
@@ -131,6 +134,20 @@ Chaque utilisateur peut se désabonner : `GET` / `PATCH /api/v1/auth/me/notifica
 (`{"actif": false}` ; `echeances` / `validations` pour ne garder qu'une partie du récapitulatif).
 Sans compose, planifier la même commande avec cron :
 `0 6 * * * cd /app && python manage.py send_alerts`.
+
+## Données personnelles
+
+Registre des traitements, durées de conservation, droits des personnes et mesures de sécurité :
+[DONNEES_PERSONNELLES.md](DONNEES_PERSONNELLES.md) (points à compléter par l'organisme :
+DPO, déclaration auprès de l'APDP). Côté exploitation :
+
+```bash
+# Conservation limitée des traces techniques (journal fonctionnel jamais purgé)
+docker compose exec backend python manage.py purge_logs --days 365 --dry-run
+docker compose exec backend python manage.py purge_logs --days 365
+```
+
+Sans compose : `30 6 * * * cd /app && python manage.py purge_logs --days 365`.
 
 ## Exports côté serveur
 

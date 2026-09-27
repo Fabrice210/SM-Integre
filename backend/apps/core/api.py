@@ -121,6 +121,25 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 
+class AnonymiseSerializer(serializers.Serializer):
+    remplacerDansDonnees = serializers.BooleanField(
+        default=False,
+        help_text="Remplacer aussi son nom dans le registre, le journal et la trace technique.",
+    )
+
+
+AnonymiseResultSerializer = inline_serializer(
+    "AnonymiseResult",
+    {
+        "id": serializers.CharField(),
+        "nom": serializers.CharField(),
+        "jetonsRevoques": serializers.IntegerField(),
+        "remplacementsDonnees": serializers.IntegerField(),
+        "journalPseudonymise": serializers.IntegerField(),
+    },
+)
+
+
 @extend_schema_view(
     create=extend_schema(
         description="Crée un utilisateur de l'organisme. Sans `password`, le compte est une "
@@ -170,6 +189,53 @@ class UserViewSet(viewsets.ModelViewSet):
                 {"detail": "L'e-mail n'a pas pu être envoyé."}, status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
         return Response({"detail": f"Invitation envoyée à {user.email}."})
+
+    @extend_schema(
+        request=AnonymiseSerializer,
+        responses={200: AnonymiseResultSerializer, 400: DetailSerializer, 403: DetailSerializer},
+        summary="Anonymiser un compte (droit à l'effacement)",
+        description="Désactive le compte et remplace nom, e-mail, poste et direction par des valeurs "
+        "neutres ; révoque ses jetons ; supprime ses préférences de notification. Avec "
+        "`remplacerDansDonnees`, son nom est aussi remplacé dans les collections du registre, le "
+        "journal et la trace technique (sinon l'historique garde le nom : traçabilité ISO). "
+        "Refusé pour soi-même et pour le dernier administrateur actif.",
+    )
+    @action(detail=True, methods=["post"])
+    def anonymiser(self, request, uid=None):
+        from .privacy import anonymise_user
+        from .tracing import log_act
+        from .viewsets import log_write
+
+        user = self.get_object()
+        ser = AnonymiseSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        replace = ser.validated_data["remplacerDansDonnees"]
+        if user.pk == request.user.pk:
+            raise serializers.ValidationError(
+                {"detail": "Vous ne pouvez pas anonymiser votre propre compte."}
+            )
+        if user.email.endswith("@anonymise.invalid"):
+            raise serializers.ValidationError({"detail": "Ce compte est déjà anonymisé."})
+        with transaction.atomic():
+            if is_admin(user) and not self._other_admins(user):
+                raise serializers.ValidationError(
+                    {"detail": "Impossible d'anonymiser le dernier administrateur de l'organisme."}
+                )
+            result = anonymise_user(user, replace_in_data=replace)
+            log_act(
+                request.user,
+                f"a anonymisé le compte {result['nom']} (droit à l'effacement"
+                + (", nom remplacé dans les données)" if replace else ")"),
+                "Utilisateurs",
+            )
+            log_write(
+                request, "users", "update", user.uid, {"anonymise": True, "remplacerDansDonnees": replace}
+            )
+        logger.info(
+            "Compte anonymisé",
+            extra={"organisation": user.organisation_id, "user": user.pk, "remplacer": replace},
+        )
+        return Response(result)
 
     def get_object(self):
         obj = super().get_object()
