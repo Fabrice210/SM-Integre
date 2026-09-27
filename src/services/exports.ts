@@ -5,7 +5,10 @@ import { currentUser, logAct, update, useApp } from '../store/useApp'
 import { toast } from '../store/useOverlays'
 
 const esc = (v: unknown) =>
-  String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+  String(v ?? '').replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!
+  )
 
 /** Tableau exportable enregistré au rendu (window._tbl de l'original). */
 export interface ExportableTable {
@@ -55,7 +58,10 @@ export function exportTable(id: string, fmt: 'xls' | 'pdf') {
   if (fmt === 'xls') {
     const csv =
       '\ufeff' +
-      [t.headers.join(';'), ...t.rows.map((r) => r.map((c) => '"' + c.replace(/"/g, '""') + '"').join(';'))].join('\r\n')
+      [
+        t.headers.join(';'),
+        ...t.rows.map((r) => r.map((c) => '"' + c.replace(/"/g, '""') + '"').join(';')),
+      ].join('\r\n')
     download((t.exportName || id) + '.csv', csv, 'text/csv;charset=utf-8')
     update((d) => logAct(d, `a exporté « ${t.exportName} » (Excel)`, 'Export'))
     toast('Export Excel généré (fichier CSV compatible Excel).')
@@ -107,7 +113,11 @@ export async function serverDownload(path: string): Promise<boolean> {
 }
 
 /** Chemin d'export serveur d'une collection, avec le filtre de norme courant. */
-export function collectionExportPath(collection: string, fmt: 'xlsx' | 'csv' | 'pdf', norm?: string) {
+export function collectionExportPath(
+  collection: string,
+  fmt: 'xlsx' | 'csv' | 'pdf',
+  norm?: string
+) {
   const q = norm && norm in NORMS ? `?norme=${encodeURIComponent(norm)}` : ''
   return `/exports/${collection}.${fmt}${q}`
 }
