@@ -138,6 +138,7 @@ export function CommunicationPage() {
           onAdd={() => openForm('communications')}
           addLabel="Créer une action"
           exportName="Plan_de_communication"
+          collection="communications"
         />
       </div>
     </>

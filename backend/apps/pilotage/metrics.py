@@ -355,6 +355,45 @@ def pending_validations(db) -> list[dict]:
     return L
 
 
+# Rôles appelés à valider quand l'objet ne désigne personne.
+ROLE_SM = "Responsable SM"
+ROLE_DG = "Dirigeant"
+_DETAIL_COLL = {
+    "docDetail": "documents",
+    "declDetail": "declarations",
+    "ncDetail": "ncs",
+    "resDetail": "ressources",
+}
+
+
+def validation_owner(db, v: dict) -> tuple[str, tuple[str, ...]]:
+    """
+    Qui doit agir sur une validation en attente (élément de pending_validations) :
+    (nom complet désigné par les données, ou "" ; rôles appelés à défaut de nom).
+    Sert aux notifications e-mail ; absent de la forme du front.
+
+      document en vérification      -> Responsable SM
+      document en approbation       -> approbateur désigné (sinon Responsable SM)
+      déclaration soumise           -> Dirigeant
+      NC, validation pilote (n1)    -> pilote du processus (procOwner)
+      NC, approbation système (n2)  -> Responsable SM
+      demande de ressource soumise  -> Dirigeant
+    """
+    detail = v.get("detail") or {}
+    coll = _DETAIL_COLL.get(detail.get("fn"))
+    obj = next((x for x in _list(db, coll) if x.get("id") == detail.get("id")), None) if coll else None
+    if obj is None:
+        return "", (ROLE_SM,)
+    if coll == "documents":
+        resp = obj.get("approbateur") if obj.get("statut") == "Approbation" else ""
+        return (resp, ()) if resp else ("", (ROLE_SM,))
+    if coll == "ncs":
+        if obj.get("n1") == "En attente":
+            return proc_owner(db, obj.get("processus")), ()
+        return "", (ROLE_SM,)
+    return "", (ROLE_DG,)
+
+
 # ---------- features/general/dashboardData.ts ----------
 
 

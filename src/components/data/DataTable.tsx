@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { NORMS } from '../../data/referentiels'
 import { inNorm } from '../../lib/norms'
 import { optList, type Opts } from '../../lib/options'
-import { exportTable, tableRegistry } from '../../services/exports'
+import { collectionExportPath, exportTable, exportVia, tableRegistry } from '../../services/exports'
 import { update, useApp } from '../../store/useApp'
 import { Icon } from '../ui/Icon'
 
@@ -37,6 +37,12 @@ interface DataTableProps<R extends Row> {
   onAdd?: () => void
   addLabel?: string
   exportName?: string
+  /**
+   * Collection affichée telle quelle (clé de db) : en mode API, les boutons Excel / PDF
+   * téléchargent l'export du serveur (/exports/<collection>.xlsx|pdf, filtre de norme
+   * compris) tant qu'aucune recherche ni aucun filtre local n'est actif.
+   */
+  collection?: string
   extra?: ReactNode
   /** Filtrer par la norme sélectionnée (défaut : oui). */
   norm?: boolean
@@ -66,6 +72,7 @@ export function DataTable<R extends Row>({
   onAdd,
   addLabel = 'Ajouter',
   exportName,
+  collection,
   extra,
   norm = true,
   empty = 'Aucun élément ne correspond à ces critères. Modifiez les filtres ou ajoutez un élément.',
@@ -93,6 +100,12 @@ export function DataTable<R extends Row>({
       exportName,
     }
   }
+
+  // Export serveur : seulement si la table montre toute la collection (hors filtre de norme)
+  const serverPath = (fmt: 'xlsx' | 'pdf') =>
+    collection && !q && !Object.values(fv).some(Boolean)
+      ? collectionExportPath(collection, fmt, norm ? normFilter : undefined)
+      : null
 
   return (
     <>
@@ -139,19 +152,23 @@ export function DataTable<R extends Row>({
           <>
             <button
               className="btn sm"
-              onClick={() => {
-                register()
-                exportTable(id, 'xls')
-              }}
+              onClick={() =>
+                exportVia(serverPath('xlsx'), () => {
+                  register()
+                  exportTable(id, 'xls')
+                })
+              }
             >
               <Icon name="dl" size={14} /> Excel
             </button>
             <button
               className="btn sm"
-              onClick={() => {
-                register()
-                exportTable(id, 'pdf')
-              }}
+              onClick={() =>
+                exportVia(serverPath('pdf'), () => {
+                  register()
+                  exportTable(id, 'pdf')
+                })
+              }
             >
               <Icon name="doc" size={14} /> PDF
             </button>

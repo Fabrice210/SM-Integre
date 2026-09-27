@@ -1,0 +1,22 @@
+{% autoescape off %}Bonjour {{ user.nom|default:user.email }},
+
+Voici le récapitulatif du {{ date }} pour {{ org.nom }} sur la plateforme SM Intégré.
+{% if depassees %}
+ÉCHÉANCES DÉPASSÉES ({{ depassees|length }})
+{% for i in depassees %}- {{ i.t }}
+  {{ i.d }}
+{% endfor %}{% endif %}{% if proches %}
+ÉCHÉANCES PROCHES ET POINTS D'ATTENTION ({{ proches|length }})
+{% for i in proches %}- {{ i.t }}
+  {{ i.d }}
+{% endfor %}{% endif %}{% if validations %}
+VALIDATIONS EN ATTENTE ({{ validations|length }})
+{% for i in validations %}- {{ i.t }}
+  {{ i.d }}
+{% endfor %}{% endif %}
+{% if app_url %}Accéder à la plateforme : {{ app_url }}
+{% endif %}
+--
+Message automatique de SM Intégré, envoyé une fois par jour au plus pour chaque alerte.
+Pour ne plus recevoir ce récapitulatif, désactivez les notifications e-mail dans vos préférences.
+{% endautoescape %}

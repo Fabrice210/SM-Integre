@@ -47,6 +47,34 @@ services:
     expose:
       - "8000"
 
+  # Récapitulatif e-mail quotidien des alertes (manage.py send_alerts), même image que l'API.
+  scheduler:
+    image: sm-integre-backend:latest
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-sm}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sm_integre}
+      SECRET_KEY: ${SECRET_KEY:?Définir SECRET_KEY dans .env}
+      DEBUG: ${DEBUG:-false}
+      MIGRATE_ON_START: "0"
+      ALERTS_TIME: ${ALERTS_TIME:-06:00}
+      ALERTS_ON_START: ${ALERTS_ON_START:-0}
+      FRONTEND_URL: ${FRONTEND_URL:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-true}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-false}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-SM Intégré <no-reply@localhost>}
+    command: ["sh", "/app/scheduler.sh"]
+    # Pas de serveur HTTP : le contrôle de santé de l'image API ne s'applique pas.
+    healthcheck:
+      disable: true
+
   frontend:
     build:
       context: .

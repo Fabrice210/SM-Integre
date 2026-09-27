@@ -63,6 +63,60 @@ Hors compose, le backend lit directement `DATABASE_URL`, `SECRET_KEY`, etc.
 (cf. `backend/.env.example`). Le conteneur front accepte `BACKEND_URL`
 (défaut `http://backend:8000`, sans barre finale) pour pointer vers une autre API.
 
+## Notifications e-mail (service `scheduler`)
+
+Le service `scheduler` (même image que l'API) exécute chaque jour
+`python manage.py send_alerts` : chaque utilisateur reçoit un récapitulatif (texte + HTML)
+des échéances dépassées ou proches et des validations en attente qui le concernent
+(mêmes règles que les alertes du tableau de bord). Une alerte n'est jamais envoyée deux
+fois le même jour (table `NotificationLog`) : une relance manuelle est sans risque.
+
+| Variable | Défaut | Rôle |
+|---|---|---|
+| `ALERTS_TIME` | `06:00` | Heure d'envoi quotidienne, horloge du conteneur (UTC) : 06:00 UTC = 07:00 à Porto-Novo |
+| `ALERTS_ON_START` | `0` | `1` : envoi aussi au démarrage du service |
+| `FRONTEND_URL` | — | URL de la plateforme, en lien dans l'e-mail (ex. `https://sm.exemple.bj`) |
+| `EMAIL_HOST` / `EMAIL_PORT` | — / `587` | Serveur SMTP |
+| `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | — | Identifiants SMTP |
+| `EMAIL_USE_TLS` / `EMAIL_USE_SSL` | `true` / `false` | STARTTLS (587) ou SSL implicite (465), pas les deux |
+| `EMAIL_BACKEND` | SMTP | `django.core.mail.backends.console.EmailBackend` pour tester sans serveur |
+| `DEFAULT_FROM_EMAIL` | `SM Intégré <no-reply@localhost>` | Expéditeur |
+
+Ces variables doivent aussi être lues par `config/settings.py` (`EMAIL_HOST`, `EMAIL_PORT`,
+`EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`, `EMAIL_USE_SSL`,
+`EMAIL_BACKEND`, `DEFAULT_FROM_EMAIL`).
+
+Commandes utiles :
+
+```bash
+# Aperçu sans envoi ni enregistrement (destinataires et nombre d'alertes)
+docker compose exec backend python manage.py send_alerts --dry-run
+# Rejouer une date donnée, ou un seul organisme
+docker compose exec backend python manage.py send_alerts --today 2026-09-21 --org 1
+# Journal du planificateur
+docker compose logs -f scheduler
+```
+
+Chaque utilisateur peut se désabonner : `GET` / `PATCH /api/v1/auth/me/notifications/`
+(`{"actif": false}` ; `echeances` / `validations` pour ne garder qu'une partie du récapitulatif).
+Sans compose, planifier la même commande avec cron :
+`0 6 * * * cd /app && python manage.py send_alerts`.
+
+## Exports côté serveur
+
+L'API produit les exports Excel, CSV et PDF (en-tête organisme, date, pagination) ;
+en mode API, les boutons d'export du front les téléchargent :
+
+| Point d'entrée | Contenu |
+|---|---|
+| `GET /api/v1/exports/<collection>.xlsx` / `.csv` / `.pdf` | Toute collection (`risques`, `fiches-maitrise`, `journal`, `users`…), `?norme=9001` respecté |
+| `GET /api/v1/exports/registre.pdf` | Registre d'amélioration continue |
+| `GET /api/v1/exports/rapport-revue/<id>.pdf` | Rapport d'entrée et PV d'une revue de direction |
+| `GET /api/v1/exports/rapport-audit/<id>.pdf` | Rapport d'un audit (constats, actions au registre) |
+| `GET /api/v1/exports/tableau-de-bord.pdf` | Indicateurs clés du tableau de bord (`?norme=`, `?today=`) |
+
+Chaque export est tracé au journal (« a exporté … », module Export) et dans l'AuditLog.
+
 ## Superutilisateur
 
 Le superutilisateur sert à l'administration Django (`/admin/`) :

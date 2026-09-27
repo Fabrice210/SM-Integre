@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>Récapitulatif SM Intégré</title></head>
+<body style="margin:0;padding:0;background:#F4F6F5;font-family:Arial,Helvetica,sans-serif;color:#15201A">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F6F5;padding:24px 0">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#FFFFFF;border:1px solid #D5DBD7;border-radius:8px">
+        <tr><td style="padding:20px 24px;border-bottom:3px solid #17693F">
+          <div style="font-size:18px;font-weight:bold">Récapitulatif du {{ date }}</div>
+          <div style="font-size:13px;color:#6D7772;margin-top:4px">{{ org.nom }} — Système de Management intégré</div>
+        </td></tr>
+        <tr><td style="padding:20px 24px;font-size:14px;line-height:1.5">
+          <p style="margin:0 0 12px">Bonjour {{ user.nom|default:user.email }},</p>
+          <p style="margin:0 0 16px">Voici les points qui vous concernent aujourd'hui.</p>
+          {% if depassees %}
+          <h2 style="font-size:15px;color:#B42318;margin:18px 0 8px">Échéances dépassées ({{ depassees|length }})</h2>
+          {% for i in depassees %}
+          <div style="border-left:4px solid #B42318;padding:6px 10px;margin:0 0 8px;background:#FEF3F2">
+            <div style="font-weight:bold">{{ i.t }}</div><div style="font-size:13px;color:#475467">{{ i.d }}</div>
+          </div>
+          {% endfor %}
+          {% endif %}
+          {% if proches %}
+          <h2 style="font-size:15px;color:#B54708;margin:18px 0 8px">Échéances proches et points d'attention ({{ proches|length }})</h2>
+          {% for i in proches %}
+          <div style="border-left:4px solid {% if i.lvl == 'amber' %}#F79009{% else %}#2E90FA{% endif %};padding:6px 10px;margin:0 0 8px;background:#FFFAEB">
+            <div style="font-weight:bold">{{ i.t }}</div><div style="font-size:13px;color:#475467">{{ i.d }}</div>
+          </div>
+          {% endfor %}
+          {% endif %}
+          {% if validations %}
+          <h2 style="font-size:15px;color:#17693F;margin:18px 0 8px">Validations en attente ({{ validations|length }})</h2>
+          {% for i in validations %}
+          <div style="border-left:4px solid #17693F;padding:6px 10px;margin:0 0 8px;background:#E6F2EB">
+            <div style="font-weight:bold">{{ i.t }}</div><div style="font-size:13px;color:#475467">{{ i.d }}</div>
+          </div>
+          {% endfor %}
+          {% endif %}
+          {% if app_url %}
+          <p style="margin:20px 0 0"><a href="{{ app_url }}" style="display:inline-block;background:#17693F;color:#FFFFFF;text-decoration:none;padding:10px 16px;border-radius:6px">Ouvrir la plateforme</a></p>
+          {% endif %}
+        </td></tr>
+        <tr><td style="padding:14px 24px;border-top:1px solid #D5DBD7;font-size:12px;color:#6D7772">
+          Message automatique de SM Intégré, envoyé une fois par jour au plus pour chaque alerte.
+          Pour ne plus recevoir ce récapitulatif, désactivez les notifications e-mail dans vos préférences.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

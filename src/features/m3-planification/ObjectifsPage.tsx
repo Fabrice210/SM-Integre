@@ -117,6 +117,7 @@ export function ObjectifsPage() {
           onAdd={() => openForm('objectifs')}
           addLabel="Définir un objectif"
           exportName="Objectifs"
+          collection="objectifs"
         />
       </div>
     )

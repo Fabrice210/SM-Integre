@@ -198,6 +198,7 @@ function EnjTab() {
         onAdd={() => openForm('enjeux')}
         addLabel="Ajouter un enjeu"
         exportName="Enjeux"
+        collection="enjeux"
         extra={
           <button className="btn sm" onClick={genEnjeux}>
             <Icon name="ai" size={14} /> Générer depuis PESTEL

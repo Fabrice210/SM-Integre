@@ -83,6 +83,7 @@ export function RessourcesPage() {
           onAdd={() => openForm('ressources')}
           addLabel="Planifier une ressource"
           exportName="Demandes_ressources"
+          collection="ressources"
           norm={false}
         />
       </div>

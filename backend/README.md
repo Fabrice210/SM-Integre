@@ -48,6 +48,8 @@ apps/support/      Module 4 — Support
 apps/operations/   Module 5 — Maîtrise opérationnelle
 apps/performance/  Module 6 — Performance & amélioration
 apps/pilotage/     Transverse : couverture normative, clôtures, tableau de bord
+apps/exports/      Exports Excel / CSV / PDF (/api/v1/exports/…)
+apps/notifications/ Récapitulatif e-mail quotidien (manage.py send_alerts), préférences
 demo/demo.json     données de démo exportées du front (node scripts/export-demo-json.mjs)
 ```
 

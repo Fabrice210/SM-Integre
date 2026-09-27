@@ -13,7 +13,7 @@ import { readForm } from '../../forms/formControllers'
 import type { FieldDef, FormDef } from '../../forms/types'
 import { addDays, days, fd, iso } from '../../lib/dates'
 import { userNames } from '../../lib/lookups'
-import { printDoc } from '../../services/exports'
+import { exportVia, printDoc } from '../../services/exports'
 import { taux } from '../../services/metrics'
 import { hist, logAct, nextId, update, useApp } from '../../store/useApp'
 import type { AppState } from '../../store/types'
@@ -190,6 +190,10 @@ function compileRapport(id: string) {
 }
 
 function printPV(id: string) {
+  exportVia(`/exports/rapport-revue/${encodeURIComponent(id)}.pdf`, () => printPVLocal(id))
+}
+
+function printPVLocal(id: string) {
   const r = DB(useApp.getState()).revues.find((x: Any) => x.id === id)
   printDoc(
     'PV ' + r.ref,
@@ -314,6 +318,7 @@ export function RevuesPage() {
           onAdd={() => openForm('revues')}
           addLabel="Créer une revue"
           exportName="Planification_revues"
+          collection="revues"
         />
       </div>
     )

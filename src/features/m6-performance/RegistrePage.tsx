@@ -144,6 +144,7 @@ export function RegistrePage() {
             },
           ]}
           exportName="Registre_amelioration_continue"
+          collection="registre"
         />
       </div>
     </>

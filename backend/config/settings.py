@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     "apps.operations",  # Module 5 — Maîtrise opérationnelle
     "apps.performance",  # Module 6 — Performance & amélioration
     "apps.pilotage",  # Pages transverses : couverture normative, tableau de bord…
+    "apps.exports",  # Exports Excel / CSV / PDF côté serveur
+    "apps.notifications",  # Notifications e-mail (alertes, validations en attente)
 ]
 
 MIDDLEWARE = [

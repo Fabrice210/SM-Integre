@@ -11,6 +11,8 @@ api_v1 = [
     path("", include("apps.operations.urls")),
     path("", include("apps.performance.urls")),
     path("", include("apps.pilotage.urls")),
+    path("", include("apps.exports.urls")),
+    path("", include("apps.notifications.urls")),
 ]
 
 urlpatterns = [
