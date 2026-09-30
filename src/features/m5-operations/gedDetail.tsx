@@ -8,6 +8,7 @@ import { readForm } from '../../forms/formControllers'
 import type { FieldDef } from '../../forms/types'
 import { TODAY, fd, iso } from '../../lib/dates'
 import { procName } from '../../lib/lookups'
+import { act, seg } from '../../services/session'
 import { currentUser, hist, logAct, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
 import { DB, type Any } from '../m6-performance/shared'
@@ -26,33 +27,44 @@ export function docAct(id: string, a: string) {
   }
   let msg = ''
   let ref = ''
-  update((s) => {
-    const d = DB(s).documents.find((x: Any) => x.id === id)
-    if (a === 'submit') {
-      d.statut = 'Vérification'
-      msg = 'soumis à vérification — vérificateur notifié'
-    }
-    if (a === 'verify') {
-      d.statut = 'Approbation'
-      msg = 'vérifié — approbateur notifié'
-    }
-    if (a === 'approve') {
-      d.statut = 'Diffusé'
-      d.version = d.versions.at(-1).v
-      d.accuses = 0
-      msg = 'approuvé et diffusé ; la version précédente est archivée'
-    }
-    if (a === 'refuse') {
-      d.statut = 'Rédaction'
-      d.refus = refus
-      msg = "refusé et renvoyé à l'auteur — motif : " + refus
-    }
-    ref = d.ref
-    hist(s, d, 'Document ' + msg)
-    logAct(s, `a ${msg.split(' ')[0]} le document ${d.ref}`, 'GED', d.statut)
-  })
-  toast(`${ref} ${msg}.`)
-  docDetail(id)
+  const local = () =>
+    update((s) => {
+      const d = DB(s).documents.find((x: Any) => x.id === id)
+      if (a === 'submit') {
+        d.statut = 'Vérification'
+        msg = 'soumis à vérification — vérificateur notifié'
+      }
+      if (a === 'verify') {
+        d.statut = 'Approbation'
+        msg = 'vérifié — approbateur notifié'
+      }
+      if (a === 'approve') {
+        d.statut = 'Diffusé'
+        d.version = d.versions.at(-1).v
+        d.accuses = 0
+        msg = 'approuvé et diffusé ; la version précédente est archivée'
+      }
+      if (a === 'refuse') {
+        d.statut = 'Rédaction'
+        d.refus = refus
+        msg = "refusé et renvoyé à l'auteur — motif : " + refus
+      }
+      ref = d.ref
+      hist(s, d, 'Document ' + msg)
+      logAct(s, `a ${msg.split(' ')[0]} le document ${d.ref}`, 'GED', d.statut)
+    })
+  const route = {
+    submit: 'soumettre',
+    verify: 'verifier',
+    approve: 'approuver',
+    refuse: 'refuser',
+  }[a]
+  if (!route) return
+  const done = (r?: { ref: string; statut: string }) => {
+    toast(r ? `${r.ref} : document passé au statut « ${r.statut} ».` : `${ref} ${msg}.`)
+    docDetail(id)
+  }
+  act(`/documents/${seg(id)}/${route}/`, a === 'refuse' ? { motif: refus } : undefined, local, done)
 }
 
 const NV_F: FieldDef[] = [
@@ -90,21 +102,25 @@ export function newVersion(id: string) {
           onClick={() => {
             const x = readForm('nvf')
             if (!x) return
-            update((s) => {
-              const d = DB(s).documents.find((y: Any) => y.id === id)
-              const v = String(parseInt(d.versions.at(-1).v) + 1)
-              d.versions.push({
-                v,
-                date: iso(TODAY),
-                auteur: currentUser(s).nom,
-                contenu: x.contenu,
+            const local = () =>
+              update((s) => {
+                const d = DB(s).documents.find((y: Any) => y.id === id)
+                const v = String(parseInt(d.versions.at(-1).v) + 1)
+                d.versions.push({
+                  v,
+                  date: iso(TODAY),
+                  auteur: currentUser(s).nom,
+                  contenu: x.contenu,
+                })
+                d.statut = 'Rédaction'
+                hist(s, d, 'Version ' + v + ' ouverte : ' + x.motif)
+                logAct(s, 'a ouvert la version ' + v + ' de ' + d.ref, 'GED', 'Brouillon')
               })
-              d.statut = 'Rédaction'
-              hist(s, d, 'Version ' + v + ' ouverte : ' + x.motif)
-              logAct(s, 'a ouvert la version ' + v + ' de ' + d.ref, 'GED', 'Brouillon')
+            const body = { contenu: x.contenu, motif: x.motif }
+            act(`/documents/${seg(id)}/nouvelle-version/`, body, local, () => {
+              closeModal()
+              docDetail(id)
             })
-            closeModal()
-            docDetail(id)
           }}
         >
           Créer la version
@@ -217,16 +233,20 @@ export function diffuser(id: string) {
             onClick={() => {
               const x = readForm('dff')
               if (!x) return
-              update((s) => {
-                const d = DB(s).documents.find((y: Any) => y.id === id)
-                d.diffusion = x.diffusion
-                d.accuses = 0
-                hist(s, d, 'Diffusé à : ' + x.diffusion)
-                logAct(s, 'a diffusé ' + d.ref, 'GED')
+              const local = () =>
+                update((s) => {
+                  const d = DB(s).documents.find((y: Any) => y.id === id)
+                  d.diffusion = x.diffusion
+                  d.accuses = 0
+                  hist(s, d, 'Diffusé à : ' + x.diffusion)
+                  logAct(s, 'a diffusé ' + d.ref, 'GED')
+                })
+              const body = { diffusion: x.diffusion, accuse: !!x.accuse }
+              act(`/documents/${seg(id)}/diffuser/`, body, local, () => {
+                closeModal('modal2')
+                toast('Diffusion envoyée, accusés de lecture attendus.')
+                docDetail(id)
               })
-              closeModal('modal2')
-              toast('Diffusion envoyée, accusés de lecture attendus.')
-              docDetail(id)
             }}
           >
             <Icon name="send" size={15} /> Diffuser

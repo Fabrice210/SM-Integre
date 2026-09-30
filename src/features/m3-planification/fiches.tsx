@@ -5,6 +5,7 @@ import { DueDate } from '../../components/ui/badges'
 import type { FormDef } from '../../forms/types'
 import { TODAY, fd, iso } from '../../lib/dates'
 import { procName, procOpts, riskOpts, userNames } from '../../lib/lookups'
+import { act, seg } from '../../services/session'
 import { hist, logAct, update, useApp } from '../../store/useApp'
 import { closeModal, toast } from '../../store/useOverlays'
 import type { AppState } from '../../store/types'
@@ -46,17 +47,20 @@ export const fichesForms: Record<string, FormDef> = {
 
 /** fmUpdate(id) de l'original. */
 export function fmUpdate(id: string) {
-  update((s) => {
-    const f = dbOf(s).fichesMaitrise.find((x: Any) => x.id === id)
-    f.derniereMaj = iso(TODAY)
-    const d = new Date(TODAY)
-    d.setFullYear(d.getFullYear() + 1)
-    f.prochaineMaj = iso(d)
-    hist(s, f, 'Mise à jour périodique réalisée')
-    logAct(s, 'a mis à jour la fiche de maîtrise « ' + f.objet + ' »', 'Maîtrise opérationnelle')
+  const local = () =>
+    update((s) => {
+      const f = dbOf(s).fichesMaitrise.find((x: Any) => x.id === id)
+      f.derniereMaj = iso(TODAY)
+      const d = new Date(TODAY)
+      d.setFullYear(d.getFullYear() + 1)
+      f.prochaineMaj = iso(d)
+      hist(s, f, 'Mise à jour périodique réalisée')
+      logAct(s, 'a mis à jour la fiche de maîtrise « ' + f.objet + ' »', 'Maîtrise opérationnelle')
+    })
+  act(`/fiches-maitrise/${seg(id)}/mettre-a-jour/`, undefined, local, () => {
+    toast('Fiche mise à jour — prochaine échéance dans 12 mois.')
+    closeModal('drawer')
   })
-  toast('Fiche mise à jour — prochaine échéance dans 12 mois.')
-  closeModal('drawer')
 }
 
 /** fmDetail(i) de l'original. */

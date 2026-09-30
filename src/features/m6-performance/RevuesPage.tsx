@@ -20,6 +20,7 @@ import type { AppState } from '../../store/types'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
 import { coverage, openActions } from '../../services/metrics'
 import { addRegistre } from '../../services/registre'
+import { act, seg } from '../../services/session'
 import { DB, type Any } from './shared'
 
 const ACT_ST = ['Mise en œuvre', 'En cours', 'Clôturé']
@@ -122,13 +123,22 @@ export function revAction(id: string) {
             onClick={() => {
               const d = readForm('raf')
               if (!d) return
-              update((s) => {
-                DB(s)
-                  .revues.find((x: Any) => x.id === id)
-                  .actions.push(d)
+              const local = () =>
+                update((s) => {
+                  DB(s)
+                    .revues.find((x: Any) => x.id === id)
+                    .actions.push(d)
+                })
+              const body = {
+                libelle: d.libelle,
+                responsable: d.responsable ?? '',
+                echeance: d.echeance,
+                statut: d.statut,
+              }
+              act(`/revues/${seg(id)}/actions/`, body, local, () => {
+                closeModal('modal2')
+                revDetail(id)
               })
-              closeModal('modal2')
-              revDetail(id)
             }}
           >
             Ajouter
@@ -142,51 +152,64 @@ export function revAction(id: string) {
 
 /** revClose(id) de l'original. */
 export function revClose(id: string) {
-  update((s) => {
-    const R = DB(s).revues
-    const r = R.find((x: Any) => x.id === id)
-    r.statut = 'Clôturée'
-    r.actions.forEach((a: Any) =>
-      addRegistre(s, 'Action de revue', a.libelle, 'Revue ' + r.ref, 'P01', r.normes, a.responsable)
+  const local = () =>
+    update((s) => {
+      const R = DB(s).revues
+      const r = R.find((x: Any) => x.id === id)
+      r.statut = 'Clôturée'
+      r.actions.forEach((a: Any) =>
+        addRegistre(
+          s,
+          'Action de revue',
+          a.libelle,
+          'Revue ' + r.ref,
+          'P01',
+          r.normes,
+          a.responsable
+        )
+      )
+      const d = new Date(r.date)
+      d.setMonth(d.getMonth() + 6)
+      const nx = {
+        id: nextId(s, 'RV'),
+        ref: r.ref.replace(/\d{4}/, String(d.getFullYear())) + '-suiv',
+        date: iso(d),
+        type: r.type,
+        normes: r.normes.slice(),
+        statut: 'Préparée',
+        ordreDuJour: [
+          'Suivi des actions de la revue ' + r.ref,
+          ...r.ordreDuJour.filter((o: string) => !o.startsWith('Suivi des actions')),
+        ],
+        rapportEntree:
+          'Généré automatiquement à la clôture de ' + r.ref + ' — sera complété à J-15.',
+        pv: '—',
+        actions: [],
+      }
+      R.push(nx)
+      hist(s, r, 'Revue clôturée — ' + r.actions.length + ' action(s) au registre')
+      logAct(
+        s,
+        'a clôturé la revue ' + r.ref + " et généré l'ordre du jour de la revue suivante",
+        'Revues'
+      )
+    })
+  act(`/revues/${seg(id)}/cloturer/`, undefined, local, () => {
+    toast(
+      'Revue clôturée : actions enregistrées au registre, ordre du jour de la revue suivante préparé.'
     )
-    const d = new Date(r.date)
-    d.setMonth(d.getMonth() + 6)
-    const nx = {
-      id: nextId(s, 'RV'),
-      ref: r.ref.replace(/\d{4}/, String(d.getFullYear())) + '-suiv',
-      date: iso(d),
-      type: r.type,
-      normes: r.normes.slice(),
-      statut: 'Préparée',
-      ordreDuJour: [
-        'Suivi des actions de la revue ' + r.ref,
-        ...r.ordreDuJour.filter((o: string) => !o.startsWith('Suivi des actions')),
-      ],
-      rapportEntree: 'Généré automatiquement à la clôture de ' + r.ref + ' — sera complété à J-15.',
-      pv: '—',
-      actions: [],
-    }
-    R.push(nx)
-    hist(s, r, 'Revue clôturée — ' + r.actions.length + ' action(s) au registre')
-    logAct(
-      s,
-      'a clôturé la revue ' + r.ref + " et généré l'ordre du jour de la revue suivante",
-      'Revues'
-    )
+    closeModal('drawer')
   })
-  toast(
-    'Revue clôturée : actions enregistrées au registre, ordre du jour de la revue suivante préparé.'
-  )
-  closeModal('drawer')
 }
 
 function compileRapport(id: string) {
-  update((s) => {
-    const r = DB(s).revues.find((x: Any) => x.id === id)
-    r.rapportEntree = rapportAuto(s)
-    hist(s, r, "Rapport d'entrée compilé automatiquement")
-  })
-  revDetail(id)
+  const local = () =>
+    update((s) => {
+      const r = DB(s).revues.find((x: Any) => x.id === id)
+      r.rapportEntree = rapportAuto(s)
+      hist(s, r, "Rapport d'entrée compilé automatiquement")
+    })
+  act(`/revues/${seg(id)}/compiler-rapport/`, undefined, local, () => revDetail(id))
 }
 
 function printPV(id: string) {

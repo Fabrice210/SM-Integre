@@ -14,6 +14,7 @@ import { procOwner } from '../../services/metrics'
 import { currentUser, hist, logAct, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
 import { addRegistre } from '../../services/registre'
+import { act, seg } from '../../services/session'
 import { DB, type Any } from './shared'
 
 export const NC_CAT = [
@@ -201,46 +202,51 @@ export function ncAct(id: string, a: 'v1' | 'v2' | 'ko' | 'close') {
   }
   let m = ''
   let ref = ''
-  update((s) => {
-    const n = DB(s).ncs.find((x: Any) => x.id === id)
-    if (a === 'v1') {
-      n.n1 = 'Validé'
-      n.statut = 'Validée pilote'
-      m = 'validé(e) par le pilote — transmis(e) au responsable du système'
-    }
-    if (a === 'v2') {
-      n.n2 = 'Approuvé'
-      n.statut = 'En traitement'
-      addRegistre(
-        s,
-        n.categorie === 'Accident / incident' ? 'Incident' : n.categorie,
-        n.description,
-        n.source + ' (' + n.ref + ')',
-        n.processus,
-        n.normes,
-        procOwner(s.db, n.processus)
-      )
-      m = 'approuvé(e) par le responsable du système — consolidé(e) dans le registre'
-    }
-    if (a === 'ko') {
-      n.statut = 'Refusée'
-      n.n1 = n.n1 === 'Validé' ? 'Validé' : 'Refusé'
-      if (n.n1 === 'Validé') n.n2 = 'Refusé'
-      m = 'refusé(e) — retour au déclarant'
-    }
-    if (a === 'close') {
-      n.statut = 'Clôturée'
-      n.efficacite = e
-      const g = DB(s).registre.find((x: Any) => x.origine.includes(n.ref))
-      if (g) g.statut = 'Clôturé'
-      m = 'clôturé(e) — efficacité : ' + e
-    }
-    ref = n.ref
-    hist(s, n, n.ref + ' ' + m)
-    logAct(s, 'a ' + m.split(' ')[0] + ' ' + n.ref, 'Non-conformités', n.statut)
+  const local = () =>
+    update((s) => {
+      const n = DB(s).ncs.find((x: Any) => x.id === id)
+      if (a === 'v1') {
+        n.n1 = 'Validé'
+        n.statut = 'Validée pilote'
+        m = 'validé(e) par le pilote — transmis(e) au responsable du système'
+      }
+      if (a === 'v2') {
+        n.n2 = 'Approuvé'
+        n.statut = 'En traitement'
+        addRegistre(
+          s,
+          n.categorie === 'Accident / incident' ? 'Incident' : n.categorie,
+          n.description,
+          n.source + ' (' + n.ref + ')',
+          n.processus,
+          n.normes,
+          procOwner(s.db, n.processus)
+        )
+        m = 'approuvé(e) par le responsable du système — consolidé(e) dans le registre'
+      }
+      if (a === 'ko') {
+        n.statut = 'Refusée'
+        n.n1 = n.n1 === 'Validé' ? 'Validé' : 'Refusé'
+        if (n.n1 === 'Validé') n.n2 = 'Refusé'
+        m = 'refusé(e) — retour au déclarant'
+      }
+      if (a === 'close') {
+        n.statut = 'Clôturée'
+        n.efficacite = e
+        const g = DB(s).registre.find((x: Any) => x.origine.includes(n.ref))
+        if (g) g.statut = 'Clôturé'
+        m = 'clôturé(e) — efficacité : ' + e
+      }
+      ref = n.ref
+      hist(s, n, n.ref + ' ' + m)
+      logAct(s, 'a ' + m.split(' ')[0] + ' ' + n.ref, 'Non-conformités', n.statut)
+    })
+  const route = { v1: 'valider-pilote', v2: 'approuver', ko: 'refuser', close: 'cloturer' }[a]
+  const body = a === 'close' ? { efficacite: e } : undefined
+  act<Any>(`/ncs/${seg(id)}/${route}/`, body, local, (r) => {
+    toast(r ? `${r.ref} : statut « ${r.statut} ».` : ref + ' ' + m + '.')
+    ncDetail(id)
   })
-  toast(ref + ' ' + m + '.')
-  ncDetail(id)
 }
 
 /** ncDetail(id) de l'original. */

@@ -9,26 +9,34 @@ import { closeModal, toast } from '../../store/useOverlays'
 import { BrList } from './BrList'
 import { niv, nivLbl } from './helpers'
 import { addRegistre } from '../../services/registre'
+import { act, seg } from '../../services/session'
 
 /** riskRealise(id) de l'original. */
 export function riskRealise(id: string) {
-  update((s) => {
-    const r = s.db.risques.find((x) => x.id === id) as Rec
-    r.realise = true
-    hist(s, r, 'Risque déclaré réalisé')
-    addRegistre(
-      s,
-      'Risque réalisé',
-      r.intitule + ' (' + r.id + ')',
-      'Risque ' + r.id,
-      r.processus[0],
-      r.normes,
-      r.responsable
-    )
-    logAct(s, 'a déclaré le risque ' + r.id + ' réalisé — entrée créée dans le registre', 'Risques')
+  const local = () =>
+    update((s) => {
+      const r = s.db.risques.find((x) => x.id === id) as Rec
+      r.realise = true
+      hist(s, r, 'Risque déclaré réalisé')
+      addRegistre(
+        s,
+        'Risque réalisé',
+        r.intitule + ' (' + r.id + ')',
+        'Risque ' + r.id,
+        r.processus[0],
+        r.normes,
+        r.responsable
+      )
+      logAct(
+        s,
+        'a déclaré le risque ' + r.id + ' réalisé — entrée créée dans le registre',
+        'Risques'
+      )
+    })
+  act(`/risques/${seg(id)}/realise/`, undefined, local, () => {
+    closeModal('drawer')
+    toast("Entrée générée automatiquement dans le registre d'amélioration continue.")
   })
-  closeModal('drawer')
-  toast("Entrée générée automatiquement dans le registre d'amélioration continue.")
 }
 
 /** riskDetail(id) de l'original. */

@@ -4,6 +4,7 @@ import { readForm } from '../../forms/formControllers'
 import type { FieldDef, FormDef } from '../../forms/types'
 import { procOpts, userNames } from '../../lib/lookups'
 import { taux } from '../../services/metrics'
+import { act, seg } from '../../services/session'
 import { hist, logAct, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
 import { DB, type Any } from './shared'
@@ -130,15 +131,19 @@ export function evalPresta(id: string) {
             // Notes obligatoires (readForm de l'original avec req:1 sur chaque échelle)
             if (!d || EV_F.some((f) => d[f.k] == null)) return
             let sc = 0
-            update((s) => {
-              const p = DB(s).prestataires.find((x: Any) => x.id === id)
-              p.notes = d
-              sc = pScore(p)
-              hist(s, p, 'Évaluation : ' + sc + ' %')
-              logAct(s, 'a évalué ' + p.nom + ' (' + sc + ' %)', 'Surveillance')
+            const local = () =>
+              update((s) => {
+                const p = DB(s).prestataires.find((x: Any) => x.id === id)
+                p.notes = d
+                sc = pScore(p)
+                hist(s, p, 'Évaluation : ' + sc + ' %')
+                logAct(s, 'a évalué ' + p.nom + ' (' + sc + ' %)', 'Surveillance')
+              })
+            act<Any>(`/prestataires/${seg(id)}/evaluer/`, d, local, (r) => {
+              if (r) sc = pScore(r)
+              closeModal()
+              toast('Score : ' + sc + ' %' + (sc < 60 ? ' — plan de progrès requis.' : '.'))
             })
-            closeModal()
-            toast('Score : ' + sc + ' %' + (sc < 60 ? ' — plan de progrès requis.' : '.'))
           }}
         >
           Enregistrer l'évaluation

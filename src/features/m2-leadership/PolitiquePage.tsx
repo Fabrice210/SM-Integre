@@ -8,7 +8,7 @@ import { openForm } from '../../forms/crud'
 import { fd } from '../../lib/dates'
 import { API_MODE } from '../../services/api'
 import { printDoc } from '../../services/exports'
-import { acknowledgePolicy } from '../../services/session'
+import { acknowledgePolicy, act } from '../../services/session'
 import { logAct, update, useApp } from '../../store/useApp'
 import { toast } from '../../store/useOverlays'
 import { diffuserNoyau } from './diffusion'
@@ -57,11 +57,14 @@ export function PolitiquePage() {
         '</table>'
     )
   const relancer = () => {
-    update((s) => logAct(s, 'a relancé les lecteurs de la politique', 'Politique SM'))
-    toast(
-      'Relance envoyée à ' +
-        accuses.filter((a) => a.statut === 'Non lu').length +
-        ' collaborateur(s).'
+    const local = () =>
+      update((s) => logAct(s, 'a relancé les lecteurs de la politique', 'Politique SM'))
+    act<{ relances: number }>('/accuses/relancer/', undefined, local, (r) =>
+      toast(
+        'Relance envoyée à ' +
+          (r ? r.relances : accuses.filter((a) => a.statut === 'Non lu').length) +
+          ' collaborateur(s).'
+      )
     )
   }
   return (

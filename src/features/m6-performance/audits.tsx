@@ -15,6 +15,7 @@ import { procOwner } from '../../services/metrics'
 import { hist, logAct, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
 import { addRegistre } from '../../services/registre'
+import { act, seg } from '../../services/session'
 import { DB, esc, type Any } from './shared'
 
 export const AUD_ST = ['Planifié', 'Plan diffusé', 'En cours', 'Rapport déposé', 'Clôturé']
@@ -101,20 +102,26 @@ const findA = (id: string): Any => DB(useApp.getState()).audits.find((y: Any) =>
 /** audAct(id, a) de l'original. */
 export function audAct(id: string, a: 'diff' | 'start' | 'alert') {
   let msg = ''
-  update((s) => {
-    const x = DB(s).audits.find((y: Any) => y.id === id)
-    const m = {
-      diff: ['Plan diffusé', "Plan d'audit diffusé aux audités et à l'auditeur"],
-      start: ['En cours', 'Audit démarré'],
-      alert: [x.statut, 'Alerte envoyée à ' + x.auditeur],
-    }[a]
-    x.statut = m[0]
-    hist(s, x, m[1])
-    logAct(s, m[1] + ' (' + x.ref + ')', 'Audits')
-    msg = m[1]
+  const local = () =>
+    update((s) => {
+      const x = DB(s).audits.find((y: Any) => y.id === id)
+      const m = {
+        diff: ['Plan diffusé', "Plan d'audit diffusé aux audités et à l'auditeur"],
+        start: ['En cours', 'Audit démarré'],
+        alert: [x.statut, 'Alerte envoyée à ' + x.auditeur],
+      }[a]
+      x.statut = m[0]
+      hist(s, x, m[1])
+      logAct(s, m[1] + ' (' + x.ref + ')', 'Audits')
+      msg = m[1]
+    })
+  const route = { diff: 'diffuser', start: 'demarrer', alert: 'alerter' }[a]
+  act<Any>(`/audits/${seg(id)}/${route}/`, undefined, local, (r) => {
+    if (r)
+      msg = a === 'alert' ? 'Alerte envoyée à ' + r.auditeur : `${r.ref} : statut « ${r.statut} »`
+    toast(msg + '.')
+    audDetail(id)
   })
-  toast(msg + '.')
-  audDetail(id)
 }
 
 /** audReport(id) de l'original. */
@@ -145,16 +152,20 @@ export function audReport(id: string) {
             onClick={() => {
               const d = readForm('arf')
               if (!d) return
-              update((s) => {
-                const x = DB(s).audits.find((y: Any) => y.id === id)
-                x.rapport = d.rapport
-                x.compteRendu = d.compteRendu
-                x.statut = 'Rapport déposé'
-                hist(s, x, 'Rapport déposé')
-                logAct(s, 'a déposé le rapport ' + x.ref, 'Audits')
+              const local = () =>
+                update((s) => {
+                  const x = DB(s).audits.find((y: Any) => y.id === id)
+                  x.rapport = d.rapport
+                  x.compteRendu = d.compteRendu
+                  x.statut = 'Rapport déposé'
+                  hist(s, x, 'Rapport déposé')
+                  logAct(s, 'a déposé le rapport ' + x.ref, 'Audits')
+                })
+              const body = { rapport: d.rapport, compteRendu: d.compteRendu }
+              act(`/audits/${seg(id)}/rapport/`, body, local, () => {
+                closeModal('modal2')
+                audDetail(id)
               })
-              closeModal('modal2')
-              audDetail(id)
             }}
           >
             Déposer
@@ -195,13 +206,21 @@ export function addConstat(id: string) {
             onClick={() => {
               const d = readForm('csf')
               if (!d) return
-              update((s) => {
-                DB(s)
-                  .audits.find((y: Any) => y.id === id)
-                  .constats.push(d)
+              const local = () =>
+                update((s) => {
+                  DB(s)
+                    .audits.find((y: Any) => y.id === id)
+                    .constats.push(d)
+                })
+              const body = {
+                type: d.type,
+                processus: d.processus ?? '',
+                description: d.description,
+              }
+              act(`/audits/${seg(id)}/constats/`, body, local, () => {
+                closeModal('modal2')
+                audDetail(id)
               })
-              closeModal('modal2')
-              audDetail(id)
             }}
           >
             Ajouter
@@ -216,28 +235,33 @@ export function addConstat(id: string) {
 /** audClose(id) de l'original. */
 export function audClose(id: string) {
   let n = 0
-  update((s) => {
-    const x = DB(s).audits.find((y: Any) => y.id === id)
-    x.constats
-      .filter((c: Any) => c.type !== 'Point fort')
-      .forEach((c: Any) => {
-        addRegistre(
-          s,
-          c.type.startsWith('NC') ? 'Non-conformité' : 'Observation',
-          c.description,
-          'Audit ' + x.ref,
-          c.processus,
-          x.normes,
-          procOwner(s.db, c.processus)
-        )
-        n++
-      })
-    x.statut = 'Clôturé'
-    hist(s, x, 'Audit clôturé — ' + n + ' action(s) enregistrée(s) au registre')
-    logAct(s, 'a clôturé ' + x.ref + ' (' + n + ' action(s) au registre)', 'Audits')
+  const prevus = findA(id).constats.filter((c: Any) => c.type !== 'Point fort').length
+  const local = () =>
+    update((s) => {
+      const x = DB(s).audits.find((y: Any) => y.id === id)
+      x.constats
+        .filter((c: Any) => c.type !== 'Point fort')
+        .forEach((c: Any) => {
+          addRegistre(
+            s,
+            c.type.startsWith('NC') ? 'Non-conformité' : 'Observation',
+            c.description,
+            'Audit ' + x.ref,
+            c.processus,
+            x.normes,
+            procOwner(s.db, c.processus)
+          )
+          n++
+        })
+      x.statut = 'Clôturé'
+      hist(s, x, 'Audit clôturé — ' + n + ' action(s) enregistrée(s) au registre')
+      logAct(s, 'a clôturé ' + x.ref + ' (' + n + ' action(s) au registre)', 'Audits')
+    })
+  act(`/audits/${seg(id)}/cloturer/`, undefined, local, (r) => {
+    if (r) n = prevus
+    toast(n + " action(s) enregistrée(s) automatiquement dans le registre d'amélioration continue.")
+    closeModal('drawer')
   })
-  toast(n + " action(s) enregistrée(s) automatiquement dans le registre d'amélioration continue.")
-  closeModal('drawer')
 }
 
 /** audDetail(id) de l'original. */
@@ -290,7 +314,10 @@ export function audDetail(id: string) {
   // Mode API : rapport d'audit PDF produit par le serveur
   const acts = API_MODE ? (
     <>
-      <button className="btn" onClick={() => void serverDownload(`/exports/rapport-audit/${encodeURIComponent(id)}.pdf`)}>
+      <button
+        className="btn"
+        onClick={() => void serverDownload(`/exports/rapport-audit/${encodeURIComponent(id)}.pdf`)}
+      >
         <Icon name="doc" size={15} /> Rapport PDF
       </button>
       {statusActs}

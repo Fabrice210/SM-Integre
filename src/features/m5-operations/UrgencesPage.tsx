@@ -16,6 +16,7 @@ import { riskOpts, siteOpts } from '../../lib/lookups'
 import { hist, logAct, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
 import { addRegistre } from '../../services/registre'
+import { act, seg } from '../../services/session'
 import { DB, type Any } from '../m6-performance/shared'
 
 export const urgencesForms: Record<string, FormDef> = {
@@ -102,15 +103,23 @@ export function addExercice(uid_: string) {
             onClick={() => {
               const d = readForm('exf')
               if (!d) return
-              update((s) => {
-                const u = DB(s).urgences.find((x: Any) => x.id === uid_)
-                u.exercices.push({ ...d, statut: 'Planifié', compteRendu: '—', actions: '—' })
-                hist(s, u, 'Exercice planifié le ' + fd(d.date))
-                logAct(s, 'a planifié un exercice : ' + u.type, "Situations d'urgence", 'Planifié')
+              const local = () =>
+                update((s) => {
+                  const u = DB(s).urgences.find((x: Any) => x.id === uid_)
+                  u.exercices.push({ ...d, statut: 'Planifié', compteRendu: '—', actions: '—' })
+                  hist(s, u, 'Exercice planifié le ' + fd(d.date))
+                  logAct(
+                    s,
+                    'a planifié un exercice : ' + u.type,
+                    "Situations d'urgence",
+                    'Planifié'
+                  )
+                })
+              act(`/urgences/${seg(uid_)}/exercices/`, d, local, () => {
+                closeModal('modal2')
+                toast('Exercice planifié — participants notifiés.')
+                urgDetail(uid_)
               })
-              closeModal('modal2')
-              toast('Exercice planifié — participants notifiés.')
-              urgDetail(uid_)
             }}
           >
             Planifier
@@ -154,37 +163,41 @@ export function crExercice(uid_: string, i: number) {
             onClick={() => {
               const d = readForm('crf')
               if (!d) return
-              update((s) => {
-                const u = DB(s).urgences.find((x: Any) => x.id === uid_)
-                Object.assign(u.exercices[i], {
-                  compteRendu: d.compteRendu,
-                  actions: d.actions,
-                  statut: 'Réalisé',
-                })
-                if (d.creer)
-                  addRegistre(
+              const local = () =>
+                update((s) => {
+                  const u = DB(s).urgences.find((x: Any) => x.id === uid_)
+                  Object.assign(u.exercices[i], {
+                    compteRendu: d.compteRendu,
+                    actions: d.actions,
+                    statut: 'Réalisé',
+                  })
+                  if (d.creer)
+                    addRegistre(
+                      s,
+                      'Action corrective',
+                      d.actions,
+                      'Exercice : ' + u.type,
+                      'P11',
+                      ['45001', '14001'],
+                      u.responsables.split(' (')[0]
+                    )
+                  hist(s, u, 'Compte-rendu enregistré')
+                  logAct(
                     s,
-                    'Action corrective',
-                    d.actions,
-                    'Exercice : ' + u.type,
-                    'P11',
-                    ['45001', '14001'],
-                    u.responsables.split(' (')[0]
+                    "a enregistré le compte-rendu de l'exercice " + u.type,
+                    "Situations d'urgence"
                   )
-                hist(s, u, 'Compte-rendu enregistré')
-                logAct(
-                  s,
-                  "a enregistré le compte-rendu de l'exercice " + u.type,
-                  "Situations d'urgence"
+                })
+              const body = { compteRendu: d.compteRendu, actions: d.actions, creer: !!d.creer }
+              act(`/urgences/${seg(uid_)}/exercices/${i}/compte-rendu/`, body, local, () => {
+                closeModal('modal2')
+                toast(
+                  d.creer
+                    ? 'Compte-rendu enregistré et actions correctives créées.'
+                    : 'Compte-rendu enregistré.'
                 )
+                urgDetail(uid_)
               })
-              closeModal('modal2')
-              toast(
-                d.creer
-                  ? 'Compte-rendu enregistré et actions correctives créées.'
-                  : 'Compte-rendu enregistré.'
-              )
-              urgDetail(uid_)
             }}
           >
             Enregistrer

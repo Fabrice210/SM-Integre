@@ -6,6 +6,7 @@ import { FormRenderer } from '../../forms/FormRenderer'
 import type { FieldDef, Rec } from '../../forms/types'
 import { fd } from '../../lib/dates'
 import { procName } from '../../lib/lookups'
+import { act, seg } from '../../services/session'
 import { hist, logAct, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
 
@@ -98,19 +99,23 @@ export function diffuserTexte(id: string) {
 function submitDiffTexte(id: string) {
   const d = readForm('dtf')
   if (!d) return
-  update((s) => {
-    const t = s.db.textes.find((x) => x.id === id) as Rec | undefined
-    if (!t) return
-    const cible =
-      d.mode === 'proc' && d.processus !== '—'
-        ? 'tous les intéressés du processus ' + procName(d.processus)
-        : d.destinataire || 'destinataire non précisé'
-    t.diffuse = true
-    t.statutDiff = 'Diffusé'
-    t.destinataireDiff = cible
-    hist(s, t, 'Texte diffusé à : ' + cible)
-    logAct(s, 'a diffusé le texte « ' + t.intitule.slice(0, 50) + '… » à ' + cible, 'Veille')
+  const local = () =>
+    update((s) => {
+      const t = s.db.textes.find((x) => x.id === id) as Rec | undefined
+      if (!t) return
+      const cible =
+        d.mode === 'proc' && d.processus !== '—'
+          ? 'tous les intéressés du processus ' + procName(d.processus)
+          : d.destinataire || 'destinataire non précisé'
+      t.diffuse = true
+      t.statutDiff = 'Diffusé'
+      t.destinataireDiff = cible
+      hist(s, t, 'Texte diffusé à : ' + cible)
+      logAct(s, 'a diffusé le texte « ' + t.intitule.slice(0, 50) + '… » à ' + cible, 'Veille')
+    })
+  const body = { mode: d.mode, destinataire: d.destinataire, processus: d.processus }
+  act(`/textes/${seg(id)}/diffuser/`, body, local, () => {
+    closeModal('modal2')
+    toast('Texte diffusé — statut « diffusé » enregistré.')
   })
-  closeModal('modal2')
-  toast('Texte diffusé — statut « diffusé » enregistré.')
 }

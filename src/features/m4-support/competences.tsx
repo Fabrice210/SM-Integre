@@ -5,6 +5,7 @@ import { FormRenderer } from '../../forms/FormRenderer'
 import { FORMS } from '../../forms/registry'
 import type { FieldDef, Rec } from '../../forms/types'
 import { download, printDoc } from '../../services/exports'
+import { act } from '../../services/session'
 import { logAct, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
 
@@ -29,22 +30,27 @@ export function importMatrix(inp: HTMLInputElement) {
   rd.onload = () => {
     const lines = String(rd.result).split(/\r?\n/).filter(Boolean)
     let n = 0
-    update((s) => {
-      const C = comp(s)
-      lines.slice(1).forEach((l) => {
-        const c = l.split(/[;,]/)
-        if (c.length >= 2) {
-          C.collaborateurs.push({
-            nom: c[0].trim(),
-            direction: c[1].trim(),
-            niveaux: C.liste.map((_: string, i: number) => Math.min(4, Number(c[i + 2]) || 0)),
-          })
-          n++
-        }
+    const local = () =>
+      update((s) => {
+        const C = comp(s)
+        lines.slice(1).forEach((l) => {
+          const c = l.split(/[;,]/)
+          if (c.length >= 2) {
+            C.collaborateurs.push({
+              nom: c[0].trim(),
+              direction: c[1].trim(),
+              niveaux: C.liste.map((_: string, i: number) => Math.min(4, Number(c[i + 2]) || 0)),
+            })
+            n++
+          }
+        })
+        logAct(s, 'a importé une matrice de compétences (' + n + ' lignes)', 'Compétences')
       })
-      logAct(s, 'a importé une matrice de compétences (' + n + ' lignes)', 'Compétences')
+    const body = { csv: String(rd.result) }
+    act<{ importes: number }>('/competences/import/', body, local, (r) => {
+      if (r) n = r.importes
+      toast(n + ' collaborateur(s) importé(s).')
     })
-    toast(n + ' collaborateur(s) importé(s).')
   }
   rd.readAsText(f)
 }
@@ -102,12 +108,16 @@ export function addCollab() {
   const onAdd = () => {
     const d = readForm('cf')
     if (d) {
-      update((s) => {
-        const C = comp(s)
-        C.collaborateurs.push({ ...d, niveaux: C.liste.map(() => 1) })
+      const local = () =>
+        update((s) => {
+          const C = comp(s)
+          C.collaborateurs.push({ ...d, niveaux: C.liste.map(() => 1) })
+        })
+      const body = { nom: d.nom, direction: d.direction ?? '' }
+      act('/competences/collaborateurs/', body, local, () => {
+        closeModal()
+        toast('Collaborateur ajouté — cliquez sur les niveaux pour les ajuster.')
       })
-      closeModal()
-      toast('Collaborateur ajouté — cliquez sur les niveaux pour les ajuster.')
     }
   }
   openModal({

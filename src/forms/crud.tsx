@@ -1,4 +1,6 @@
 import { Icon } from '../components/ui/Icon'
+import { API_MODE } from '../services/api'
+import { act, seg } from '../services/session'
 import { hist, logAct, nextId, update, useApp } from '../store/useApp'
 import type { AppState } from '../store/types'
 import { closeModal, openModal, toast } from '../store/useOverlays'
@@ -18,7 +20,8 @@ export function findRec(s: AppState, coll: string, id: string): Rec | undefined 
   return listOf(s, coll).find((x) => x.id === id)
 }
 
-const labelOf = (coll: string, r: Rec) => r[FORMS[coll]?.label || 'intitule'] || r.nom || r.libelle || r.id
+const labelOf = (coll: string, r: Rec) =>
+  r[FORMS[coll]?.label || 'intitule'] || r.nom || r.libelle || r.id
 
 /** openForm(coll, id) de l'original : formulaire de création ou de modification. */
 export function openForm(coll: string, id?: string) {
@@ -48,7 +51,11 @@ export function openForm(coll: string, id?: string) {
         listOf(s, coll).unshift(r)
       }
       res = F.save ? F.save(s, r, !cur) : null
-      logAct(s, `a ${cur ? 'modifié' : 'créé'} « ${labelOf(coll, r)} » (${F.title})`, F.mod || F.title)
+      logAct(
+        s,
+        `a ${cur ? 'modifié' : 'créé'} « ${labelOf(coll, r)} » (${F.title})`,
+        F.mod || F.title
+      )
     })
     closeModal()
     closeModal('drawer')
@@ -84,7 +91,8 @@ export function delRec(coll: string, id: string) {
       title: 'Supprimer cet élément ?',
       body: (
         <p>
-          « {labelOf(coll, r)} » sera retiré de la liste. L'action est tracée dans le journal d'audit.
+          « {labelOf(coll, r)} » sera retiré de la liste. L'action est tracée dans le journal
+          d'audit.
         </p>
       ),
       foot: (
@@ -108,7 +116,11 @@ function doDel(coll: string, id: string) {
     const i = list.findIndex((x) => x.id === id)
     const r = list[i]
     list.splice(i, 1)
-    logAct(s, `a supprimé « ${r[FORMS[coll]?.label || 'intitule'] || r.nom || r.id} »`, FORMS[coll]?.mod || coll)
+    logAct(
+      s,
+      `a supprimé « ${r[FORMS[coll]?.label || 'intitule'] || r.nom || r.id} »`,
+      FORMS[coll]?.mod || coll
+    )
   })
   closeModal('modal2')
   closeModal('drawer')
@@ -117,13 +129,23 @@ function doDel(coll: string, id: string) {
 
 /** markObsolete(coll, id) de l'original. */
 export function markObsolete(coll: string, id: string) {
-  update((s) => {
-    const r = findRec(s, coll, id)!
-    r.statut = 'Obsolète'
-    r.obsolete = true
-    hist(s, r, 'Classé obsolète (traçabilité conservée)')
-    logAct(s, `a classé obsolète « ${r.intitule || r.titre || r.id} »`, coll)
-  })
-  closeModal('drawer')
-  toast("Élément classé obsolète — il reste consultable dans l'historique.")
+  const local = () =>
+    update((s) => {
+      const r = findRec(s, coll, id)!
+      r.statut = 'Obsolète'
+      r.obsolete = true
+      hist(s, r, 'Classé obsolète (traçabilité conservée)')
+      logAct(s, `a classé obsolète « ${r.intitule || r.titre || r.id} »`, coll)
+    })
+  const done = () => {
+    closeModal('drawer')
+    toast("Élément classé obsolète — il reste consultable dans l'historique.")
+  }
+  // Seuls les documents ont une route dédiée (droits du propriétaire vérifiés par le serveur).
+  if (API_MODE && coll === 'documents')
+    act(`/documents/${seg(id)}/obsolete/`, undefined, local, done)
+  else {
+    local()
+    done()
+  }
 }

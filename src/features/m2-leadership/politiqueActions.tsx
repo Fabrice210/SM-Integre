@@ -4,6 +4,7 @@ import { FormRenderer } from '../../forms/FormRenderer'
 import { readForm } from '../../forms/formControllers'
 import type { FieldDef, Rec } from '../../forms/types'
 import { iso, TODAY } from '../../lib/dates'
+import { act } from '../../services/session'
 import { hist, logAct, update, useApp } from '../../store/useApp'
 import type { AppState } from '../../store/types'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
@@ -35,12 +36,15 @@ export function genPolResume(s: Pick<AppState, 'org' | 'activeNorms'>, orient: s
 
 /** regenPolResume() */
 export function regenPolResume() {
-  update((s) => {
-    s.db.politique.resume = genPolResume(s, s.db.politique.orientations)
-    hist(s, s.db.politique as Rec, "Résumé régénéré par l'IA")
-    logAct(s, "a régénéré le résumé de la politique via l'IA", 'Politique SM')
-  })
-  toast("Résumé de la politique régénéré par l'IA.")
+  const local = () =>
+    update((s) => {
+      s.db.politique.resume = genPolResume(s, s.db.politique.orientations)
+      hist(s, s.db.politique as Rec, "Résumé régénéré par l'IA")
+      logAct(s, "a régénéré le résumé de la politique via l'IA", 'Politique SM')
+    })
+  act('/politique/regenerer-resume/', undefined, local, () =>
+    toast("Résumé de la politique régénéré par l'IA.")
+  )
 }
 
 /** editPolitique() : nouvelle version de la politique (résumé généré), accusés réinitialisés. */
@@ -49,24 +53,28 @@ export function editPolitique() {
   const publish = () => {
     const d = readForm('polf')
     if (d) {
-      update((s) => {
-        d.resume = genPolResume(s, d.orientations)
-        Object.assign(s.db.politique, d, {
-          version: 'v' + (parseInt(s.db.politique.version.slice(1)) + 1),
-          statut: 'Publiée',
+      const { orientations, signataire, date } = d
+      const local = () =>
+        update((s) => {
+          d.resume = genPolResume(s, d.orientations)
+          Object.assign(s.db.politique, d, {
+            version: 'v' + (parseInt(s.db.politique.version.slice(1)) + 1),
+            statut: 'Publiée',
+          })
+          s.db.accuses.forEach((a) => {
+            a.statut = 'Non lu'
+            a.date = '—'
+          })
+          logAct(
+            s,
+            'a publié la politique SM ' + s.db.politique.version + " (résumé généré par l'IA)",
+            'Politique SM'
+          )
         })
-        s.db.accuses.forEach((a) => {
-          a.statut = 'Non lu'
-          a.date = '—'
-        })
-        logAct(
-          s,
-          'a publié la politique SM ' + s.db.politique.version + " (résumé généré par l'IA)",
-          'Politique SM'
-        )
+      act('/politique/publier/', { orientations, signataire, date }, local, () => {
+        closeModal()
+        toast("Politique publiée : résumé généré par l'IA, accusés de lecture réinitialisés.")
       })
-      closeModal()
-      toast("Politique publiée : résumé généré par l'IA, accusés de lecture réinitialisés.")
     }
   }
   openModal({

@@ -243,8 +243,8 @@ async function crud({ mod, pageId, tab, add, coll, f, del, after }) {
 
 const persisted = [] // éléments à retrouver après rechargement
 
-/** Action de circuit (bouton de la fiche) : PUT de l'élément, statut vérifié côté serveur. */
-function workflow(coll, button, statut) {
+/** Action de circuit (bouton de la fiche) : route d'action du serveur, statut vérifié côté serveur. */
+function workflow(coll, button, statut, route) {
   return async (id) => {
     await page
       .locator('.content tr', { hasText: `E2E ${coll} modifié ${STAMP}` })
@@ -252,9 +252,11 @@ function workflow(coll, button, statut) {
       .click()
     const btn = page.locator(`.drawer button:has-text("${button}")`)
     if (!check(await btn.isVisible().catch(() => false), `${coll} : bouton « ${button} »`)) return
-    const put = waitCall('PUT', `${collUrl(coll)}${id}/`)
+    const call = waitCall('POST', `${collUrl(coll)}${id}/${route}/`)
+    const reload = waitCall('GET', '/bootstrap/')
     await btn.click()
-    check((await put).status() === 200, `${coll} : « ${button} » -> PUT 200`)
+    check((await call).status() === 200, `${coll} : « ${button} » -> POST ${route} 200`)
+    await reload
     await idle()
     const r = await serverGet(`${collUrl(coll)}${id}/`)
     check(r.statut === statut, `${coll} : statut côté serveur « ${r.statut} »`)
@@ -294,7 +296,7 @@ try {
       add: 'Planifier un audit',
       coll: 'audits',
       f: 'titre',
-      after: workflow('audits', 'Diffuser le plan', 'Plan diffusé'),
+      after: workflow('audits', 'Diffuser le plan', 'Plan diffusé', 'diffuser'),
     },
   ]
   for (const sc of SCENARIOS) {
@@ -320,9 +322,11 @@ try {
       persisted.push({ coll: 'documents', ...r })
       await page.keyboard.press('Escape')
       await page.locator('.content tr', { hasText: r.v2 }).first().click()
-      const put = waitCall('PUT', `/documents/${r.id}/`)
+      const call = waitCall('POST', `/documents/${r.id}/soumettre/`)
+      const reload = waitCall('GET', '/bootstrap/')
       await page.click('.drawer button:has-text("Soumettre")')
-      check((await put).status() === 200, 'GED : soumission PUT 200')
+      check((await call).status() === 200, 'GED : soumission POST soumettre 200')
+      await reload
       const d = await serverGet(`/documents/${r.id}/`)
       check(d.statut === 'Vérification', `GED : statut côté serveur « ${d.statut} »`)
       await idle()
@@ -339,11 +343,15 @@ try {
       coll: 'ncs',
       f: 'lieu',
       after: async (id) => {
-        await workflow('ncs', 'Valider (pilote)', 'Validée pilote')(id)
+        await workflow('ncs', 'Valider (pilote)', 'Validée pilote', 'valider-pilote')(id)
         const reg0 = (await serverGet('/registre/')).length
-        const post = waitCall('POST', /^\/registre\/(\?at=start)?$/)
-        await workflow('ncs', 'Approuver (responsable du système)', 'En traitement')(id)
-        check((await post).status() === 201, 'NC approuvée : entrée du registre créée (POST 201)')
+        // L'entrée du registre est créée par le serveur dans la même action.
+        await workflow(
+          'ncs',
+          'Approuver (responsable du système)',
+          'En traitement',
+          'approuver'
+        )(id)
         check(
           (await serverGet('/registre/')).length === reg0 + 1,
           'registre enregistré côté serveur'
@@ -373,9 +381,11 @@ try {
     await modalReady()
     const orient = `1. Orientation E2E ${STAMP}\n2. Satisfaire nos clients`
     await page.fill('.modal [data-f="orientations"] .inp', orient)
-    const put = waitCall('PUT', '/politique/')
+    const call = waitCall('POST', '/politique/publier/')
+    const reload = waitCall('GET', '/bootstrap/')
     await page.click('.modal button:has-text("Publier")')
-    check((await put).status() === 200, 'politique : PUT /politique/ 200')
+    check((await call).status() === 200, 'politique : POST /politique/publier/ 200')
+    await reload
     await idle()
     const pol = await serverGet('/politique/')
     const expected = 'v' + (parseInt(before.version.slice(1)) + 1)
@@ -602,10 +612,12 @@ try {
     await goto('m1-parties')
     const pi = (await serverGet('/parties/'))[1]
     await page.locator('.content tr', { hasText: pi.nom }).first().click()
-    const post = waitCall('POST', /^\/objectifs\/(\?at=start)?$/)
+    const post = waitCall('POST', `/parties/${pi.id}/plan-engagement/`)
+    const reload = waitCall('GET', '/bootstrap/')
     await page.click('.drawer button:has-text("Suivre le plan comme action")')
     const pr = await post
-    check(pr.status() === 201, `objectif de suivi créé : POST /objectifs/ ${pr.status()}`)
+    check(pr.status() === 201, `objectif de suivi créé par le serveur : POST ${pr.status()}`)
+    await reload
     await idle()
     const ob = await serverGet('/objectifs/OB-PI/')
     check(

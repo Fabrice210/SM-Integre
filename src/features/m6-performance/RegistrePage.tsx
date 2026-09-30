@@ -6,6 +6,7 @@ import { MOD_FULL } from '../../data/referentiels'
 import { fd } from '../../lib/dates'
 import { procName, procOpts, procShort } from '../../lib/lookups'
 import { inNorm } from '../../lib/norms'
+import { act, seg } from '../../services/session'
 import { logAct, update, useApp } from '../../store/useApp'
 import { closeModal, openDrawer, toast } from '../../store/useOverlays'
 import { DB, type Any } from './shared'
@@ -59,10 +60,13 @@ export function regDetail(id: string) {
           <button
             className="btn"
             onClick={() => {
-              update((s) =>
-                logAct(s, 'a relancé ' + g.responsable + ' sur ' + g.ref, 'Registre', 'Relance')
+              const local = () =>
+                update((s) =>
+                  logAct(s, 'a relancé ' + g.responsable + ' sur ' + g.ref, 'Registre', 'Relance')
+                )
+              act(`/registre/${seg(id)}/relancer/`, undefined, local, () =>
+                toast('Relance envoyée à ' + g.responsable + '.')
               )
-              toast('Relance envoyée à ' + g.responsable + '.')
             }}
           >
             Relancer le responsable
@@ -70,13 +74,16 @@ export function regDetail(id: string) {
           <button
             className="btn primary"
             onClick={() => {
-              update((s) => {
-                const r = DB(s).registre.find((x: Any) => x.id === id)
-                r.statut = 'Clôturé'
-                logAct(s, 'a clôturé ' + r.ref, 'Registre')
+              const local = () =>
+                update((s) => {
+                  const r = DB(s).registre.find((x: Any) => x.id === id)
+                  r.statut = 'Clôturé'
+                  logAct(s, 'a clôturé ' + r.ref, 'Registre')
+                })
+              act(`/registre/${seg(id)}/cloturer/`, undefined, local, () => {
+                closeModal('drawer')
+                toast('Entrée clôturée et archivée.')
               })
-              closeModal('drawer')
-              toast('Entrée clôturée et archivée.')
             }}
           >
             Clôturer

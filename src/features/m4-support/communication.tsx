@@ -4,6 +4,7 @@ import { FormRenderer } from '../../forms/FormRenderer'
 import type { FieldDef, Rec } from '../../forms/types'
 import { fd, iso, TODAY } from '../../lib/dates'
 import { printDoc } from '../../services/exports'
+import { act, seg } from '../../services/session'
 import { hist, logAct, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
 
@@ -25,14 +26,18 @@ export function comDone(id: string) {
   const onSave = () => {
     const d = readForm('cpf')
     if (d) {
-      update((s) => {
-        const c = s.db.communications.find((x) => x.id === id) as Rec
-        Object.assign(c, d, { statut: 'Fait' })
-        hist(s, c, 'Réalisée le ' + fd(d.dateRealisation) + ' — preuve jointe')
-        logAct(s, "a joint la preuve de l'action « " + c.objectif + ' »', 'Communication')
+      const local = () =>
+        update((s) => {
+          const c = s.db.communications.find((x) => x.id === id) as Rec
+          Object.assign(c, d, { statut: 'Fait' })
+          hist(s, c, 'Réalisée le ' + fd(d.dateRealisation) + ' — preuve jointe')
+          logAct(s, "a joint la preuve de l'action « " + c.objectif + ' »', 'Communication')
+        })
+      const body = { preuve: d.preuve, dateRealisation: d.dateRealisation }
+      act(`/communications/${seg(id)}/realiser/`, body, local, () => {
+        closeModal()
+        toast('Action passée à « Fait » — date de réalisation enregistrée.')
       })
-      closeModal()
-      toast('Action passée à « Fait » — date de réalisation enregistrée.')
     }
   }
   openModal({
@@ -41,8 +46,8 @@ export function comDone(id: string) {
     body: (
       <>
         <div className="note mb">
-          <Icon name="check" size={14} /> Renseignez la date de réalisation effective (distincte de la date de délai
-          prévue).
+          <Icon name="check" size={14} /> Renseignez la date de réalisation effective (distincte de
+          la date de délai prévue).
         </div>
         <div id="cpf">
           <FormRenderer

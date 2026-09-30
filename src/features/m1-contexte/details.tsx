@@ -7,6 +7,7 @@ import { ALL_N } from '../../data/referentiels'
 import { addDays, fd } from '../../lib/dates'
 import { axeName } from '../../lib/lookups'
 import { taux } from '../../services/metrics'
+import { act, seg } from '../../services/session'
 import { currentUser, hist, logAct, update, useApp } from '../../store/useApp'
 import { closeModal, toast } from '../../store/useOverlays'
 import { joinNodes, type Any } from './util'
@@ -63,13 +64,14 @@ export function enjDetail(id: string) {
 export function piDetail(id: string) {
   const p: Any = useApp.getState().db.parties.find((x) => x.id === id)
   const toggle = () => {
-    update((s) => {
-      const p: Any = s.db.parties.find((x) => x.id === id)
-      p.planMisEnOeuvre = !p.planMisEnOeuvre
-      hist(s, p, p.planMisEnOeuvre ? 'Plan déclaré mis en œuvre' : 'Plan repassé à traiter')
-      logAct(s, "a mis à jour l'état du plan d'engagement de " + p.nom, 'Parties intéressées')
-    })
-    piDetail(id)
+    const local = () =>
+      update((s) => {
+        const p: Any = s.db.parties.find((x) => x.id === id)
+        p.planMisEnOeuvre = !p.planMisEnOeuvre
+        hist(s, p, p.planMisEnOeuvre ? 'Plan déclaré mis en œuvre' : 'Plan repassé à traiter')
+        logAct(s, "a mis à jour l'état du plan d'engagement de " + p.nom, 'Parties intéressées')
+      })
+    act(`/parties/${seg(id)}/basculer-plan/`, undefined, local, () => piDetail(id))
   }
   openDetail({
     coll: 'parties',
@@ -112,57 +114,63 @@ export function planEngagementAction(id: string) {
   const cur: Any = useApp.getState().db.parties.find((x) => x.id === id)
   if (!cur) return
   let deja = false
-  update((s) => {
-    const p: Any = s.db.parties.find((x) => x.id === id)
-    const DB = s.db as Any
-    let ob = DB.objectifs.find((o: Any) => o.code === 'OB-PI')
-    if (!ob) {
-      ob = {
-        id: 'OB-PI',
-        code: 'OB-PI',
-        axe: (DB.axes[0] || {}).id || 'AX1',
-        libelle: 'Engagement des parties intéressées',
-        kpi: "Plans d'engagement suivis",
-        cible: '100 % des parties critiques',
-        delai: addDays(90),
-        efficacite: 'Non évaluée',
-        processus: [(DB.processus[0] || {}).id || 'P01'],
-        normes: [...ALL_N],
-        actions: [],
+  const local = () =>
+    update((s) => {
+      const p: Any = s.db.parties.find((x) => x.id === id)
+      const DB = s.db as Any
+      let ob = DB.objectifs.find((o: Any) => o.code === 'OB-PI')
+      if (!ob) {
+        ob = {
+          id: 'OB-PI',
+          code: 'OB-PI',
+          axe: (DB.axes[0] || {}).id || 'AX1',
+          libelle: 'Engagement des parties intéressées',
+          kpi: "Plans d'engagement suivis",
+          cible: '100 % des parties critiques',
+          delai: addDays(90),
+          efficacite: 'Non évaluée',
+          processus: [(DB.processus[0] || {}).id || 'P01'],
+          normes: [...ALL_N],
+          actions: [],
+        }
+        DB.objectifs.push(ob)
+        logAct(s, "a créé l'objectif de suivi des plans d'engagement", 'Objectifs')
       }
-      DB.objectifs.push(ob)
-      logAct(s, "a créé l'objectif de suivi des plans d'engagement", 'Objectifs')
-    }
-    ob.actions = ob.actions || []
-    if (ob.actions.some((a: Any) => a.pi === id)) {
-      deja = true
+      ob.actions = ob.actions || []
+      if (ob.actions.some((a: Any) => a.pi === id)) {
+        deja = true
+        return
+      }
+      ob.actions.push({
+        libelle: "Plan d'engagement — " + p.nom,
+        responsable: currentUser(s).nom,
+        echeance: addDays(90),
+        statut: 'En cours',
+        observation: p.plan + ' (remis trimestriellement)',
+        pi: id,
+      })
+      hist(s, p, "Plan d'engagement rattaché au module Objectifs / Actions")
+      logAct(
+        s,
+        "a rattaché le plan d'engagement de " + p.nom + ' aux actions (module Objectifs)',
+        'Parties intéressées'
+      )
+    })
+  act<{ deja: boolean }>(`/parties/${seg(id)}/plan-engagement/`, undefined, local, (r) => {
+    if (r) deja = r.deja
+    if (deja) {
+      toast("Le plan d'engagement de " + cur.nom + ' est déjà suivi comme action.')
       return
     }
-    ob.actions.push({
-      libelle: "Plan d'engagement — " + p.nom,
-      responsable: currentUser(s).nom,
-      echeance: addDays(90),
-      statut: 'En cours',
-      observation: p.plan + ' (remis trimestriellement)',
-      pi: id,
+    update((s) => {
+      s.ui.tabs.obj = 'act'
     })
-    hist(s, p, "Plan d'engagement rattaché au module Objectifs / Actions")
-    logAct(
-      s,
-      "a rattaché le plan d'engagement de " + p.nom + ' aux actions (module Objectifs)',
-      'Parties intéressées'
+    closeModal('drawer')
+    toast(
+      "Plan d'engagement ajouté comme action trimestrielle — suivi dans le module Objectifs / Actions."
     )
-    s.ui.tabs.obj = 'act'
+    go('m3-objectifs')
   })
-  if (deja) {
-    toast("Le plan d'engagement de " + cur.nom + ' est déjà suivi comme action.')
-    return
-  }
-  closeModal('drawer')
-  toast(
-    "Plan d'engagement ajouté comme action trimestrielle — suivi dans le module Objectifs / Actions."
-  )
-  go('m3-objectifs')
 }
 
 /** Fiche d'un site (clic sur une ligne de l'onglet Sites). */

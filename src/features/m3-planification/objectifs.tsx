@@ -6,6 +6,7 @@ import { FormRenderer } from '../../forms/FormRenderer'
 import type { FieldDef, Rec } from '../../forms/types'
 import { addDays, fd } from '../../lib/dates'
 import { axeName, procName } from '../../lib/lookups'
+import { act, seg } from '../../services/session'
 import { hist, logAct, nextId, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
 import { BrList } from './BrList'
@@ -90,15 +91,21 @@ export function editAction(oid: string, i: number) {
   const onSave = () => {
     const d = readForm('actf')
     if (!d) return
-    update((s) => {
-      const o = s.db.objectifs.find((x) => x.id === oid) as Rec
-      if (i >= 0) Object.assign(o.actions[i], d)
-      else o.actions.push(d)
-      hist(s, o, (i >= 0 ? 'Action modifiée' : 'Action ajoutée') + ' : ' + d.libelle)
-      logAct(s, "a mis à jour le plan d'action de " + o.code, 'Objectifs')
-    })
-    closeModal('modal2')
-    objDetail(oid)
+    const local = () =>
+      update((s) => {
+        const o = s.db.objectifs.find((x) => x.id === oid) as Rec
+        if (i >= 0) Object.assign(o.actions[i], d)
+        else o.actions.push(d)
+        hist(s, o, (i >= 0 ? 'Action modifiée' : 'Action ajoutée') + ' : ' + d.libelle)
+        logAct(s, "a mis à jour le plan d'action de " + o.code, 'Objectifs')
+      })
+    const done = () => {
+      closeModal('modal2')
+      objDetail(oid)
+    }
+    // Modification : PATCH fusionne avec l'action existante (comme Object.assign).
+    if (i >= 0) act(`/objectifs/${seg(oid)}/actions/${i}/`, d, local, done, 'PATCH')
+    else act(`/objectifs/${seg(oid)}/actions/`, d, local, done)
   }
   openModal(
     {
@@ -125,7 +132,12 @@ export function editAction(oid: string, i: number) {
 
 const IMP_F: FieldDef[] = [
   { k: 'fichier', l: 'Fichier du tableau de bord (Excel, CSV)', t: 'file', req: 1 },
-  { k: 'remplace', l: "Mode d'import", t: 'toggle', lbl: 'Compléter la liste existante sans la supprimer' },
+  {
+    k: 'remplace',
+    l: "Mode d'import",
+    t: 'toggle',
+    lbl: 'Compléter la liste existante sans la supprimer',
+  },
 ]
 
 /** importObjectifs() de l'original (v2) : import d'un tableau de bord existant. */
@@ -136,8 +148,8 @@ export function importObjectifs() {
     body: (
       <>
         <div className="note mb">
-          <Icon name="up" size={15} /> Les objectifs importés restent modifiables et sont rattachés aux processus et aux
-          normes.
+          <Icon name="up" size={15} /> Les objectifs importés restent modifiables et sont rattachés
+          aux processus et aux normes.
         </div>
         <div id="impf">
           <FormRenderer
@@ -166,43 +178,51 @@ function doImportObjectifs() {
   const d = readForm('impf')
   if (!d) return
   let n = 0
-  update((s) => {
-    const ax = s.db.axes[0]?.id || 'AX1'
-    const imp = [
-      {
-        code: 'OB-06',
-        axe: ax,
-        libelle: "Atteindre 95 % de livraisons à l'heure",
-        kpi: "Taux de livraison à l'heure",
-        cible: '95 %',
-        delai: addDays(180),
-        efficacite: 'Non évaluée',
-        processus: ['P07'],
-        normes: ['9001'],
-      },
-      {
-        code: 'OB-07',
-        axe: ax,
-        libelle: 'Réduire le taux de rebut au conditionnement à 1 %',
-        kpi: 'Taux de rebut',
-        cible: '1 %',
-        delai: addDays(210),
-        efficacite: 'Non évaluée',
-        processus: ['P05'],
-        normes: ['9001'],
-      },
-    ]
-    const list = s.db.objectifs as unknown as Rec[]
-    imp.forEach((o) => {
-      if (list.some((x) => x.code === o.code)) return
-      list.push({ id: nextId(s, 'OB'), ...o, actions: [], importe: true })
-      n++
+  const ax = useApp.getState().db.axes[0]?.id || 'AX1'
+  const imp = [
+    {
+      code: 'OB-06',
+      axe: ax,
+      libelle: "Atteindre 95 % de livraisons à l'heure",
+      kpi: "Taux de livraison à l'heure",
+      cible: '95 %',
+      delai: addDays(180),
+      efficacite: 'Non évaluée',
+      processus: ['P07'],
+      normes: ['9001'],
+    },
+    {
+      code: 'OB-07',
+      axe: ax,
+      libelle: 'Réduire le taux de rebut au conditionnement à 1 %',
+      kpi: 'Taux de rebut',
+      cible: '1 %',
+      delai: addDays(210),
+      efficacite: 'Non évaluée',
+      processus: ['P05'],
+      normes: ['9001'],
+    },
+  ]
+  const local = () =>
+    update((s) => {
+      const list = s.db.objectifs as unknown as Rec[]
+      imp.forEach((o) => {
+        if (list.some((x) => x.code === o.code)) return
+        list.push({ id: nextId(s, 'OB'), ...o, actions: [], importe: true })
+        n++
+      })
+      logAct(s, 'a importé un tableau de bord des objectifs (' + n + ' objectif(s))', 'Objectifs')
     })
-    logAct(s, 'a importé un tableau de bord des objectifs (' + n + ' objectif(s))', 'Objectifs')
-    s.ui.tabs.obj = 'list'
+  act<{ importes: number }>('/objectifs/import/', { objectifs: imp }, local, (r) => {
+    if (r) n = r.importes
+    update((s) => {
+      s.ui.tabs.obj = 'list'
+    })
+    closeModal()
+    toast(
+      n
+        ? n + ' objectif(s) importé(s) et consultables dans la plateforme.'
+        : 'Ces objectifs sont déjà présents dans la plateforme.'
+    )
   })
-  closeModal()
-  toast(
-    n ? n + ' objectif(s) importé(s) et consultables dans la plateforme.' : 'Ces objectifs sont déjà présents dans la plateforme.'
-  )
 }

@@ -6,6 +6,7 @@ import { FormRenderer } from '../../forms/FormRenderer'
 import { readForm } from '../../forms/formControllers'
 import type { FieldDef } from '../../forms/types'
 import { addDays, fd, iso, TODAY } from '../../lib/dates'
+import { act, seg } from '../../services/session'
 import { hist, logAct, nextId, update, useApp } from '../../store/useApp'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
 
@@ -25,20 +26,22 @@ export function repDetail(id: string) {
   const r: Any = useApp.getState().db.representants.find((x) => x.id === id)
   if (!r) return
   const setStatut = (statut: string) => {
-    update((s) => {
-      const r: Any = s.db.representants.find((x) => x.id === id)
-      r.statut = statut
-      hist(s, r, statut === 'Actif' ? 'Mandat réactivé' : 'Mandat révoqué')
-      logAct(
-        s,
-        (statut === 'Actif' ? 'a réactivé le mandat de ' : 'a révoqué le mandat de ') +
-          r.prenom +
-          ' ' +
-          r.nom,
-        'Consultation'
-      )
-    })
-    repDetail(id)
+    const local = () =>
+      update((s) => {
+        const r: Any = s.db.representants.find((x) => x.id === id)
+        r.statut = statut
+        hist(s, r, statut === 'Actif' ? 'Mandat réactivé' : 'Mandat révoqué')
+        logAct(
+          s,
+          (statut === 'Actif' ? 'a réactivé le mandat de ' : 'a révoqué le mandat de ') +
+            r.prenom +
+            ' ' +
+            r.nom,
+          'Consultation'
+        )
+      })
+    const route = statut === 'Actif' ? 'reactiver' : 'revoquer'
+    act(`/representants/${seg(id)}/${route}/`, undefined, local, () => repDetail(id))
   }
   openDetail({
     coll: 'representants',
@@ -86,14 +89,17 @@ export function marquerReunionFaite(id: string) {
   const submit = () => {
     const d = readForm('rf')
     if (!d) return
-    update((s) => {
-      const m: Any = s.db.reunions.find((x) => x.id === id)
-      Object.assign(m, d, { statut: 'Réalisée', date: m.date || iso(TODAY) })
-      hist(s, m, 'Réunion marquée réalisée (2 preuves jointes)')
-      logAct(s, 'a marqué la réunion « ' + m.objet + ' » comme réalisée', 'Consultation')
+    const local = () =>
+      update((s) => {
+        const m: Any = s.db.reunions.find((x) => x.id === id)
+        Object.assign(m, d, { statut: 'Réalisée', date: m.date || iso(TODAY) })
+        hist(s, m, 'Réunion marquée réalisée (2 preuves jointes)')
+        logAct(s, 'a marqué la réunion « ' + m.objet + ' » comme réalisée', 'Consultation')
+      })
+    act(`/reunions/${seg(id)}/realiser/`, d, local, () => {
+      closeModal('modal2')
+      toast('Réunion enregistrée comme réalisée avec 2 preuves jointes.')
     })
-    closeModal('modal2')
-    toast('Réunion enregistrée comme réalisée avec 2 preuves jointes.')
   }
   openModal(
     {
@@ -173,28 +179,32 @@ export function planifierAnnee() {
     ['Revue trimestrielle T4 — bilan SST', 'Comité HS (CHSS)', addDays(300)],
   ]
   let n = 0
-  update((s) => {
-    base.forEach(([o, p, d]) => {
-      if (s.db.reunions.some((x) => x.objet === o)) return
-      ;(s.db.reunions as Any[]).push({
-        id: nextId(s, 'RC'),
-        objet: o,
-        datePrevue: d,
-        date: d,
-        participants: p,
-        ordreDuJour: 'À préciser lors de la préparation',
-        statut: 'Planifiée',
-        compteRendu: '',
-        planAction: '',
-        statutPlan: 'À faire',
-        preuve1: '',
-        preuve2: '',
+  const local = () =>
+    update((s) => {
+      base.forEach(([o, p, d]) => {
+        if (s.db.reunions.some((x) => x.objet === o)) return
+        ;(s.db.reunions as Any[]).push({
+          id: nextId(s, 'RC'),
+          objet: o,
+          datePrevue: d,
+          date: d,
+          participants: p,
+          ordreDuJour: 'À préciser lors de la préparation',
+          statut: 'Planifiée',
+          compteRendu: '',
+          planAction: '',
+          statutPlan: 'À faire',
+          preuve1: '',
+          preuve2: '',
+        })
+        n++
       })
-      n++
+      logAct(s, 'a établi la planification annuelle des réunions de consultation', 'Consultation')
     })
-    logAct(s, 'a établi la planification annuelle des réunions de consultation', 'Consultation')
+  act<{ planifiees: number }>('/reunions/planifier-annee/', undefined, local, (r) => {
+    if (r) n = r.planifiees
+    toast(
+      n ? n + " réunion(s) planifiée(s) pour l'année." : 'Le calendrier annuel est déjà en place.'
+    )
   })
-  toast(
-    n ? n + " réunion(s) planifiée(s) pour l'année." : 'Le calendrier annuel est déjà en place.'
-  )
 }

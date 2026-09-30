@@ -11,79 +11,90 @@ import { addDays, fd, iso, TODAY } from '../../lib/dates'
 import { currentUser, hist, logAct, nextId, update, useApp } from '../../store/useApp'
 import { closeModal, openDrawer, toast } from '../../store/useOverlays'
 import { addRegistre } from '../../services/registre'
+import { act as serverAct, seg } from '../../services/session'
 import { diffuserTexte, rapDetail } from './veilleRapports'
 
 const db = () => useApp.getState().db
 
 /** declAct(id, act) de l'original : circuit de la déclaration au DG. */
 export function declAct(id: string, act: 'submit' | 'ok' | 'ko') {
-  let msg: [string, 'ok' | 'warn'] | null = null
-  update((s) => {
-    const d = s.db.declarations.find((x) => x.id === id) as Rec
-    if (act === 'submit') {
-      d.statut = 'Soumise'
-      d.commentaireDG = 'En attente de décision du Directeur Général'
-      hist(s, d, 'Soumise au Directeur Général')
-      logAct(s, 'a soumis la déclaration « ' + d.objet + ' » au DG', 'Veille', 'En attente')
-      msg = ['Déclaration soumise : le Directeur Général est notifié.', 'ok']
-    }
-    if (act === 'ok') {
-      d.statut = 'Validée'
-      d.commentaireDG = 'Validée le ' + fd(iso(TODAY)) + ' — liée au registre des non-conformités'
-      hist(s, d, 'Validée par le DG')
-      const t = (s.db.textes.find((x) => x.id === d.texte) as Rec | undefined) || {
-        normes: ['9001'],
-        responsable: currentUser(s).nom,
-      }
-      const nc = {
-        id: nextId(s, 'NC'),
-        ref: 'NC-2026-0' + (30 + s.db.ncs.length),
-        categorie: 'Non-conformité',
-        source: 'Veille réglementaire',
-        description: d.objet,
-        typeActe: 'Conformité',
-        cause: d.cause,
-        action: d.planAction,
-        lieu: s.org.nom,
-        processus: 'P02',
-        normes: t.normes,
-        statut: 'En traitement',
-        n1: 'Validé',
-        n2: 'Approuvé',
-        date: iso(TODAY),
-        declarant: d.auteur,
-        origine: 'Déclaration ' + d.id,
-      }
-      ;(s.db.ncs as unknown as Rec[]).unshift(nc)
-      addRegistre(
-        s,
-        'Non-conformité',
-        d.objet,
-        'Veille réglementaire (' + d.id + ')',
-        'P02',
-        t.normes,
-        t.responsable
-      )
-      logAct(
-        s,
-        'a validé la déclaration « ' + d.objet + ' » — écart lié au module Non-conformités',
-        'Veille'
-      )
-      msg = [
+  const msg = (
+    {
+      submit: ['Déclaration soumise : le Directeur Général est notifié.', 'ok'],
+      ok: [
         'Déclaration validée : écart créé dans le module 6.4 et mise en conformité planifiée.',
         'ok',
-      ]
-    }
-    if (act === 'ko') {
-      d.statut = 'Refusée'
-      d.commentaireDG = "Refusée — complément demandé sur le plan d'action"
-      hist(s, d, "Refusée par le DG, retour à l'auteur")
-      logAct(s, 'a refusé la déclaration « ' + d.objet + ' »', 'Veille', 'Refusé')
-      msg = ["Déclaration refusée et renvoyée à l'auteur.", 'warn']
-    }
-  })
-  if (msg) toast(...(msg as [string, 'ok' | 'warn']))
-  closeModal('drawer')
+      ],
+      ko: ["Déclaration refusée et renvoyée à l'auteur.", 'warn'],
+    } as Record<string, [string, 'ok' | 'warn']>
+  )[act]
+  const local = () =>
+    update((s) => {
+      const d = s.db.declarations.find((x) => x.id === id) as Rec
+      if (act === 'submit') {
+        d.statut = 'Soumise'
+        d.commentaireDG = 'En attente de décision du Directeur Général'
+        hist(s, d, 'Soumise au Directeur Général')
+        logAct(s, 'a soumis la déclaration « ' + d.objet + ' » au DG', 'Veille', 'En attente')
+      }
+      if (act === 'ok') {
+        d.statut = 'Validée'
+        d.commentaireDG = 'Validée le ' + fd(iso(TODAY)) + ' — liée au registre des non-conformités'
+        hist(s, d, 'Validée par le DG')
+        const t = (s.db.textes.find((x) => x.id === d.texte) as Rec | undefined) || {
+          normes: ['9001'],
+          responsable: currentUser(s).nom,
+        }
+        const nc = {
+          id: nextId(s, 'NC'),
+          ref: 'NC-2026-0' + (30 + s.db.ncs.length),
+          categorie: 'Non-conformité',
+          source: 'Veille réglementaire',
+          description: d.objet,
+          typeActe: 'Conformité',
+          cause: d.cause,
+          action: d.planAction,
+          lieu: s.org.nom,
+          processus: 'P02',
+          normes: t.normes,
+          statut: 'En traitement',
+          n1: 'Validé',
+          n2: 'Approuvé',
+          date: iso(TODAY),
+          declarant: d.auteur,
+          origine: 'Déclaration ' + d.id,
+        }
+        ;(s.db.ncs as unknown as Rec[]).unshift(nc)
+        addRegistre(
+          s,
+          'Non-conformité',
+          d.objet,
+          'Veille réglementaire (' + d.id + ')',
+          'P02',
+          t.normes,
+          t.responsable
+        )
+        logAct(
+          s,
+          'a validé la déclaration « ' + d.objet + ' » — écart lié au module Non-conformités',
+          'Veille'
+        )
+      }
+      if (act === 'ko') {
+        d.statut = 'Refusée'
+        d.commentaireDG = "Refusée — complément demandé sur le plan d'action"
+        hist(s, d, "Refusée par le DG, retour à l'auteur")
+        logAct(s, 'a refusé la déclaration « ' + d.objet + ' »', 'Veille', 'Refusé')
+      }
+    })
+  const done = () => {
+    toast(...msg)
+    closeModal('drawer')
+  }
+  const base = `/declarations/${seg(id)}/`
+  if (act === 'submit') serverAct(base + 'soumettre/', undefined, local, done)
+  else
+    serverAct(base + 'decision/', { decision: act === 'ok' ? 'valider' : 'refuser' }, local, done)
 }
 
 /** declDetail(id) de l'original. */
@@ -191,17 +202,27 @@ export function txDetail(id: string) {
           items={(db().rapportsConf || [])
             .filter((d) => d.texte === id)
             .map((d) => (
-              <LinkItem key={d.id} title={d.ref + ' — ' + d.titre} sub={d.statut} onClick={() => rapDetail(d.id)} />
+              <LinkItem
+                key={d.id}
+                title={d.ref + ' — ' + d.titre}
+                sub={d.statut}
+                onClick={() => rapDetail(d.id)}
+              />
             ))}
         />
         <Block
-        title="Déclarations d'écart liées"
-        items={db()
-          .declarations.filter((d) => d.texte === id)
-          .map((d) => (
-            <LinkItem key={d.id} title={d.objet} sub={d.statut} onClick={() => declDetail(d.id)} />
-          ))}
-      />
+          title="Déclarations d'écart liées"
+          items={db()
+            .declarations.filter((d) => d.texte === id)
+            .map((d) => (
+              <LinkItem
+                key={d.id}
+                title={d.objet}
+                sub={d.statut}
+                onClick={() => declDetail(d.id)}
+              />
+            ))}
+        />
       </>
     ),
     obs: true,
@@ -257,35 +278,39 @@ export function openDecl(tid: string) {
 /** qualifUrgence(tid) de l'original : crée un risque « Situation d'urgence ». */
 export function qualifUrgence(tid: string) {
   let rid = ''
-  update((s) => {
-    const t = s.db.textes.find((x) => x.id === tid) as Rec
-    const r: Rec = {
-      id: 'R' + String(s.db.risques.length + 1).padStart(2, '0'),
-      intitule: "Situation d'urgence liée à : " + t.intitule.slice(0, 60),
-      cause: t.justificatif,
-      consequences: 'Accident, pollution ou sanction réglementaire',
-      type: "Situation d'urgence",
-      normes: t.normes,
-      probabilite: 2,
-      criticite: 4,
-      traitement: 'Réduire',
-      processus: ['P11'],
-      action: "Créer la fiche de situation d'urgence et planifier un exercice",
-      responsable: t.responsable,
-      echeance: addDays(60),
-      statutAction: 'Mise en œuvre',
-      efficacite: 'À évaluer',
-      realise: false,
-    }
-    hist(s, r, "Qualifié en situation d'urgence depuis le registre de veille")
-    ;(s.db.risques as unknown as Rec[]).push(r)
-    logAct(
-      s,
-      "a qualifié un risque de situation d'urgence depuis la veille (" + r.id + ')',
-      'Veille'
-    )
-    rid = r.id
+  const local = () =>
+    update((s) => {
+      const t = s.db.textes.find((x) => x.id === tid) as Rec
+      const r: Rec = {
+        id: 'R' + String(s.db.risques.length + 1).padStart(2, '0'),
+        intitule: "Situation d'urgence liée à : " + t.intitule.slice(0, 60),
+        cause: t.justificatif,
+        consequences: 'Accident, pollution ou sanction réglementaire',
+        type: "Situation d'urgence",
+        normes: t.normes,
+        probabilite: 2,
+        criticite: 4,
+        traitement: 'Réduire',
+        processus: ['P11'],
+        action: "Créer la fiche de situation d'urgence et planifier un exercice",
+        responsable: t.responsable,
+        echeance: addDays(60),
+        statutAction: 'Mise en œuvre',
+        efficacite: 'À évaluer',
+        realise: false,
+      }
+      hist(s, r, "Qualifié en situation d'urgence depuis le registre de veille")
+      ;(s.db.risques as unknown as Rec[]).push(r)
+      logAct(
+        s,
+        "a qualifié un risque de situation d'urgence depuis la veille (" + r.id + ')',
+        'Veille'
+      )
+      rid = r.id
+    })
+  serverAct<{ id: string }>(`/textes/${seg(tid)}/qualifier-urgence/`, undefined, local, (r) => {
+    if (r) rid = r.id
+    closeModal('drawer')
+    toast('Risque ' + rid + " créé et typé « Situation d'urgence ».")
   })
-  closeModal('drawer')
-  toast('Risque ' + rid + " créé et typé « Situation d'urgence ».")
 }

@@ -142,6 +142,58 @@ export async function acknowledgePolicy() {
   await resync()
 }
 
+/** Actions métier en attente de réponse : une même route n'est pas rappelée (double clic). */
+const acting = new Set<string>()
+
+/** Segment d'URL d'un identifiant. */
+export const seg = (id: string | number) => encodeURIComponent(String(id))
+
+/**
+ * Action métier. Mode API : la route du serveur fait le traitement (droits, règles,
+ * historique, journal, effets liés dans d'autres collections), puis son état est
+ * rechargé et `done` reçoit la réponse. Mode local : `local` applique la recette de la
+ * maquette, puis `done()` est appelé sans argument. Refus du serveur : message affiché,
+ * l'écran reste tel quel (`done` n'est pas appelé).
+ */
+export function act<T = unknown>(
+  path: string,
+  body: unknown,
+  local: () => void,
+  done?: (data?: T) => void,
+  method: 'POST' | 'PATCH' = 'POST'
+) {
+  if (!api.API_MODE) {
+    local()
+    done?.()
+    return
+  }
+  if (acting.has(path)) return
+  acting.add(path)
+  void (async () => {
+    let data: T
+    try {
+      await flush()
+      data = await api.request<T>(path, { method, body })
+      await resync()
+    } catch (e) {
+      const err = e instanceof api.ApiError ? e : new api.ApiError(0, String(e))
+      console.error(`[api] ${method} ${path} : ${err.status} ${err.message}`, err.data ?? '')
+      toast(
+        err.status === 0 || err.status >= 500
+          ? err.status
+            ? `Erreur du serveur (${err.status}) : action non enregistrée.`
+            : err.message
+          : 'Action refusée par le serveur : ' + err.message,
+        'warn'
+      )
+      return
+    } finally {
+      acting.delete(path)
+    }
+    done?.(data)
+  })()
+}
+
 /** Résultat de POST /users/<id>/anonymiser/. */
 export interface AnonymiseResult {
   id: string

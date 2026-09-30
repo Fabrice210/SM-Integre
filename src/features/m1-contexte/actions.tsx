@@ -5,6 +5,7 @@ import type { FieldDef } from '../../forms/types'
 import { fd, iso, TODAY } from '../../lib/dates'
 import { axeName } from '../../lib/lookups'
 import { printDoc } from '../../services/exports'
+import { act } from '../../services/session'
 import { currentUser, hist, logAct, nextId, update, useApp } from '../../store/useApp'
 import type { AppState } from '../../store/types'
 import { closeModal, openModal, toast } from '../../store/useOverlays'
@@ -20,36 +21,42 @@ const AXE_BY_NORM: Record<string, string> = {
 /** genEnjeux() : un enjeu par facteur PESTEL sans enjeu, rattaché aux axes. */
 export function genEnjeux() {
   let n = 0
-  update((s) => {
-    s.db.pestel.forEach((f) => {
-      if (s.db.enjeux.some((e) => e.origine === f.id)) return
-      const axe = [...new Set(f.normes.map((x) => AXE_BY_NORM[x]))]
-      const e: Any = {
-        id: nextId(s, 'EN'),
-        libelle:
-          (f.qualification === 'Positif' ? 'Saisir : ' : 'Maîtriser : ') +
-          f.facteur.charAt(0).toLowerCase() +
-          f.facteur.slice(1),
-        source: 'Externe (PESTEL)',
-        qualification: f.qualification,
-        axes: axe,
-        normes: f.normes.slice(),
-        origine: f.id,
-        date: iso(TODAY),
-        statut: 'Actif',
-      }
-      hist(s, e, 'Généré automatiquement depuis le facteur ' + f.id)
-      s.db.enjeux.unshift(e)
-      n++
+  const local = () =>
+    update((s) => {
+      s.db.pestel.forEach((f) => {
+        if (s.db.enjeux.some((e) => e.origine === f.id)) return
+        const axe = [...new Set(f.normes.map((x) => AXE_BY_NORM[x]))]
+        const e: Any = {
+          id: nextId(s, 'EN'),
+          libelle:
+            (f.qualification === 'Positif' ? 'Saisir : ' : 'Maîtriser : ') +
+            f.facteur.charAt(0).toLowerCase() +
+            f.facteur.slice(1),
+          source: 'Externe (PESTEL)',
+          qualification: f.qualification,
+          axes: axe,
+          normes: f.normes.slice(),
+          origine: f.id,
+          date: iso(TODAY),
+          statut: 'Actif',
+        }
+        hist(s, e, 'Généré automatiquement depuis le facteur ' + f.id)
+        s.db.enjeux.unshift(e)
+        n++
+      })
+      logAct(s, `a généré ${n} enjeu(x) depuis la matrice PESTEL`, 'Enjeux')
     })
-    logAct(s, `a généré ${n} enjeu(x) depuis la matrice PESTEL`, 'Enjeux')
-    s.ui.tabs.enjeux = 'enj'
+  act<{ generes: number }>('/enjeux/generer/', undefined, local, (r) => {
+    if (r) n = r.generes
+    update((s) => {
+      s.ui.tabs.enjeux = 'enj'
+    })
+    toast(
+      n
+        ? `${n} enjeu(x) généré(s) et associé(s) aux axes de la politique.`
+        : 'Tous les facteurs externes ont déjà un enjeu.'
+    )
   })
-  toast(
-    n
-      ? `${n} enjeu(x) généré(s) et associé(s) aux axes de la politique.`
-      : 'Tous les facteurs externes ont déjà un enjeu.'
-  )
 }
 
 const VF_FIELDS: FieldDef[] = [
@@ -65,20 +72,24 @@ export function saveVersion(coll: 'analyseVersions' | 'domaineVersions', label: 
   const onSave = () => {
     const d = readForm('vf')
     if (d) {
-      update((s) => {
-        ;(s.db[coll] as Any[]).push({
-          id: nextId(s, 'V'),
-          version: v,
-          date: iso(TODAY),
-          auteur: currentUser(s).nom,
-          commentaire: d.commentaire,
-          facteurs: s.db.swot.length + s.db.pestel.length,
-          enjeux: s.db.enjeux.length,
+      const local = () =>
+        update((s) => {
+          ;(s.db[coll] as Any[]).push({
+            id: nextId(s, 'V'),
+            version: v,
+            date: iso(TODAY),
+            auteur: currentUser(s).nom,
+            commentaire: d.commentaire,
+            facteurs: s.db.swot.length + s.db.pestel.length,
+            enjeux: s.db.enjeux.length,
+          })
+          logAct(s, `a enregistré la version ${v} (${label})`, label)
         })
-        logAct(s, `a enregistré la version ${v} (${label})`, label)
+      const route = coll === 'analyseVersions' ? 'analyse-versions' : 'domaine-versions'
+      act<{ version: string }>(`/${route}/figer/`, { commentaire: d.commentaire }, local, (r) => {
+        closeModal()
+        toast(`Version ${r?.version ?? v} enregistrée.`)
       })
-      closeModal()
-      toast(`Version ${v} enregistrée.`)
     }
   }
   openModal({
